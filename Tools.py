@@ -1,5 +1,6 @@
 # 提取放大矩阵中心部分
 import numpy as np
+import cupy as cp
 from scipy.interpolate import interp1d
 
 
@@ -26,20 +27,27 @@ def extract_center(matrix, center_fraction):
     return matrix[row_start:row_end, col_start:col_end]
 
 
-def calculate_enclosed_energy_ratio(r, intensity):
+def calculate_enclosed_energy_ratio(r, intensity, gpu_acceleration=False):
     """
-    计算不同半径下圈入能量占总能量的比
+    计算不同半径下圈入能量占总能量的比,仅适用于中心对称场
     r: 径向坐标数组 mm
-    intensity: 光场强度分布数组 w/mm
+    intensity: 一维径向光场强度分布数组 w/mm
     return: 圈入能量占总能量的比数组
     """
     # 计算总能量
-    total_energy = np.trapz(intensity * 2 * np.pi * r, r)
+    xp = cp if gpu_acceleration else np  # 使用cupy进行GPU加速计算
+    total_energy = xp.trapz(intensity * 2 * np.pi * r, r)
 
     # 计算不同半径下圈入的能量
-    enclosed_energy = np.zeros_like(r)
+    enclosed_energy = xp.zeros_like(r)
     for i in range(len(r)):
-        enclosed_energy[i] = np.trapz(intensity[:i + 1] * 2 * np.pi * r[:i + 1], r[:i + 1])
+        if i == 0:
+            if r[i] == 0:
+                enclosed_energy[i] = 0
+            else:
+                enclosed_energy[i] = xp.pi * r[i] ** 2 * intensity[i]   #使用相同值进行外插，也即假设平顶分布
+        else:
+            enclosed_energy[i] = xp.trapz(intensity[:i + 1] * 2 * xp.pi * r[:i + 1], r[:i + 1])
 
     # 计算不同半径下圈入能量占总能量的比
     energy_ratio = enclosed_energy / total_energy
@@ -47,27 +55,37 @@ def calculate_enclosed_energy_ratio(r, intensity):
     return energy_ratio
 
 
-def calculate_fwhm(r, intensity):
+def calculate_fwhm(r, intensity, gpu_acceleration=False):
     """
-    计算光场强度达到半高宽 (FWHM) 的半径位置
+    计算光场强度达到半高宽 (FWHM) 的半径位置,仅适用于中心对称场
     r: 径向坐标数组 mm
     intensity: 光场强度分布数组 w/mm
     :return: 半高宽 (FWHM) 对应的半径位置
     """
+    xp = cp if gpu_acceleration else np
     # 找到光场强度的最大值和一半最大值的位置
-    I_max = np.max(intensity)
+    I_max = xp.max(intensity)
     I_half_max = I_max / 2
 
-    # 使用插值法找到光场强度为一半最大值的位置
-    f_interp = interp1d(intensity, r, kind='linear', fill_value='extrapolate')
+    #  使用弦截法寻根
+    intensity = intensity - I_half_max
+    FWHM = r[0]
+    FWHM0 = r[0]  # 启动参数
+    FWHM1 = r[1]
+    tolerance = 1e-7  # 容限
+    i=0
+    while xp.abs(xp.interp(FWHM, r, intensity)) >= tolerance:
+        if FWHM1 - FWHM0 == 0:
+            FWHM1 = FWHM0 + (r[1]-r[0])
+        FWHM = FWHM1 - xp.interp(FWHM1, r, intensity) * (FWHM1 - FWHM0) / (
+                xp.interp(FWHM1, r, intensity) - xp.interp(FWHM0, r, intensity))
+        FWHM0 = FWHM1
+        FWHM1 = FWHM
+        if i>3000:
+            print("More than 3000 iterations.FWHM calculation failed")
+            break
+        i=i+1
 
-    try:
-        r_half_max1 = f_interp(I_half_max)
-        FWHM = 2 * r_half_max1
-    except ValueError:
-        FWHM = None
+    FWHM = 2 * FWHM
 
     return FWHM
-
-
-

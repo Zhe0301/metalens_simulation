@@ -8,7 +8,7 @@ class Grid:
         self.length = length
 
         self.step = self.length / self.num_points  # 离散步长
-        self.step_sq = self.step ** 2
+        self.step_fft = 1 / self.length  # 频率步长
         self.half_num_points = self.num_points / 2
 
         self.vector = np.arange(1, self.num_points + 1)
