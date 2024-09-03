@@ -1,6 +1,7 @@
 # 提取放大矩阵中心部分
 import numpy as np
 import cupy as cp
+from matplotlib import pyplot as plt
 from scipy.interpolate import interp1d
 
 
@@ -45,7 +46,7 @@ def calculate_enclosed_energy_ratio(r, intensity, gpu_acceleration=False):
             if r[i] == 0:
                 enclosed_energy[i] = 0
             else:
-                enclosed_energy[i] = xp.pi * r[i] ** 2 * intensity[i]   #使用相同值进行外插，也即假设平顶分布
+                enclosed_energy[i] = xp.pi * r[i] ** 2 * intensity[i]  #使用相同值进行外插，也即假设平顶分布
         else:
             enclosed_energy[i] = xp.trapz(intensity[:i + 1] * 2 * xp.pi * r[:i + 1], r[:i + 1])
 
@@ -73,19 +74,36 @@ def calculate_fwhm(r, intensity, gpu_acceleration=False):
     FWHM0 = r[0]  # 启动参数
     FWHM1 = r[1]
     tolerance = 1e-7  # 容限
-    i=0
+    i = 0
     while xp.abs(xp.interp(FWHM, r, intensity)) >= tolerance:
         if FWHM1 - FWHM0 == 0:
-            FWHM1 = FWHM0 + (r[1]-r[0])
+            FWHM1 = FWHM0 + (r[1] - r[0])
         FWHM = FWHM1 - xp.interp(FWHM1, r, intensity) * (FWHM1 - FWHM0) / (
                 xp.interp(FWHM1, r, intensity) - xp.interp(FWHM0, r, intensity))
         FWHM0 = FWHM1
         FWHM1 = FWHM
-        if i>3000:
+        if i > 3000:
             print("More than 3000 iterations.FWHM calculation failed")
             break
-        i=i+1
+        i = i + 1
 
     FWHM = 2 * FWHM
-
     return FWHM
+
+
+"""根据psf推算mtf"""
+
+
+def calculate_mtf(psf, Grid, gpu_acceleration=False):
+    """
+    计算MTF
+    psf: 点扩散函数
+    return: 调制传递函数
+    """
+    xp = cp if gpu_acceleration else np
+    lsf_x = np.trapz(psf,dx=Grid.step,axis=0) #对y积分
+    lsf_y = np.trapz(psf, dx=Grid.step, axis=1)  # 对x积分
+    mtf_x = xp.abs(xp.fft.fftshift(xp.fft.fft(lsf_x)))
+    mtf_y = xp.abs(xp.fft.fftshift(xp.fft.fft(lsf_y)))
+    return mtf_x,mtf_y
+

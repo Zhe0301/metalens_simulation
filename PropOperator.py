@@ -1,4 +1,9 @@
-# 角谱传输
+"""
+光波传输类
+支持AS，BL-AS和FFT-DI三种算法
+周王哲
+2024.7.22
+"""
 import numpy as np
 import cupy as cp
 from matplotlib import pyplot as plt
@@ -79,6 +84,7 @@ class PropOperator:
                 print('Good result: factor {:2.2f}'.format(self.quality))
             else:
                 print('Needs denser sampling: factor {:2.2f}'.format(self.quality))
+                print('Distance {:2.2f}'.format(self.dist))
             self.mat_DI = xp.zeros((2 * Grid.num_points - 1, 2 * Grid.num_points - 1), dtype=complex)
             # 生成一个(2N-1)×(2N-1)矩阵
             X_tmp_1D = xp.linspace(2 * Grid.axis[0], -2 * Grid.axis[0], 2 * Grid.num_points - 1)

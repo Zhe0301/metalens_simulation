@@ -1,4 +1,6 @@
-#  建立超透镜模型通用函数
+"""
+建立超透镜模型通用函数
+"""
 import sys
 
 from matplotlib import pyplot as plt
@@ -22,11 +24,12 @@ import time
 from Tools import *
 
 
-def three_element_zoom_system(s, L1, L2, L3, G,d_lens, d_12, d_23, d_bfl, efl, wavelength_vacuum, refractive_index,
-                              save_path, magnification=100, sampling_point=200, interval=1,method='AS', gpu_acceleration=False):
+def three_element_zoom_system(s, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, wavelength_vacuum, refractive_index,
+                              save_path, magnification=100, sampling_point=200, interval=1, method='AS',
+                              gpu_acceleration=False):
     # magnification 图像放大倍率，为0或小于0时不放大,算y-z平面光场（sampling_point采样点数,interval焦点前后距离，单位mm，二者之一为0或小于0时不计算）
     t0 = time.time()
-    if gpu_acceleration: # 使用GPU加速先进行数据转换
+    if gpu_acceleration:  # 使用GPU加速先进行数据转换
         G.d2_fft_x = cp.asarray(G.d2_fft_x)
         G.d2_fft_y = cp.asarray(G.d2_fft_y)
         G.axis = cp.asarray(G.axis)
@@ -41,7 +44,7 @@ def three_element_zoom_system(s, L1, L2, L3, G,d_lens, d_12, d_23, d_bfl, efl, w
 
     p_b = PropOperator(G, wavelength_vacuum, d_lens, refractive_index, method=method,
                        gpu_acceleration=gpu_acceleration)  # 基底厚度(base) 传播
-    p_12 = PropOperator(G, wavelength_vacuum, d_12, method=method,gpu_acceleration=gpu_acceleration)  # d_12 传播
+    p_12 = PropOperator(G, wavelength_vacuum, d_12, method=method, gpu_acceleration=gpu_acceleration)  # d_12 传播
     p_23 = PropOperator(G, wavelength_vacuum, d_23, method=method, gpu_acceleration=gpu_acceleration)  # d_23 传播
     p_bfl = PropOperator(G, wavelength_vacuum, d_bfl, method=method,
                          gpu_acceleration=gpu_acceleration)  # 后截距(back focal length) 传播
@@ -63,7 +66,8 @@ def three_element_zoom_system(s, L1, L2, L3, G,d_lens, d_12, d_23, d_bfl, efl, w
     t2 = time.time()
     elapsed_time = t2 - t1
     print("Light propagation calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
-
+    """MTF计算"""
+    mtf_x, mtf_y = calculate_mtf(e_6, G, gpu_acceleration=gpu_acceleration)
     """圈入能量计算"""
     mid_index_0 = len(G.axis) // 2  # 坐标中心位置
     source_energy = xp.sum(xp.power(xp.abs(s.complex_amplitude * L1.mask), 2))  # 光源入射的能量
@@ -108,8 +112,16 @@ def three_element_zoom_system(s, L1, L2, L3, G,d_lens, d_12, d_23, d_bfl, efl, w
         G.axis = cp.asnumpy(G.axis)
         ratio_e = cp.asnumpy(ratio_e)
         fwhm = cp.asnumpy(fwhm)
+        mtf_x = cp.asnumpy(mtf_x)
+        mtf_y = cp.asnumpy(mtf_y)
 
     """统一绘图"""
+    plt.figure(figsize=(9, 7))
+    plt.title('MTF')
+    plt.xlabel('frequency(/mm)')
+    plt.ylabel(r'MTF')
+    plt.plot(G.axis_fft,mtf_x,G.axis_fft,mtf_y)
+    plt.show()
 
     plt.figure(figsize=(16, 14))
     plt.subplot(2, 2, 1)
@@ -218,4 +230,3 @@ def three_element_zoom_system(s, L1, L2, L3, G,d_lens, d_12, d_23, d_bfl, efl, w
         return e_5, e_6, e_yz
     else:
         return e_5, e_6
-

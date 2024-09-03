@@ -1,3 +1,8 @@
+"""
+配置并启动仿真
+By 周王哲
+2024.7.22
+"""
 import sys
 
 import numpy as np
@@ -27,7 +32,7 @@ from Tools import *
 
 
 # 建立仿真网络
-G = Grid(4096, 2.5)
+G = Grid(2048, 2.5)
 # 仿真参数
 wavelength_vacuum = 632.8 * 1e-6  # 真空波长，单位mm
 refractive_index = 1.457  # SiO2折射率
@@ -35,7 +40,7 @@ refractive_index = 1.457  # SiO2折射率
 s = Source(G.d2_x, G.d2_y, wavelength_vacuum, 1)
 s.plane_wave(np.pi / 2, np.pi / 2)
 # 相位离散量
-discrete = 8
+discrete = 0
 # 储存位置
 save_path = r'E:/Research/WavePropagation/metalens_simulation/Zoom_6×/discrete_{}_'.format(discrete)  # 数据存放目录
 # 镜片
@@ -56,8 +61,8 @@ d_12 = 9.738333468442362e-1  # 距离，单位mm
 d_23 = 3.026166651061564
 d_bfl = 1.599999981606190
 efl = 0.7  # 有效焦距，单位mm，用于图片命名
-# method = 'FFT-DI'
-method = 'AS'
+method = 'FFT-DI'
+# method = 'AS'
 # method = "BL-AS"
 three_element_zoom_system(s, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, wavelength_vacuum, refractive_index,
                           save_path, magnification=100, sampling_point=0, interval=1,  method=method,gpu_acceleration=True)

@@ -1,3 +1,8 @@
+"""
+镜头和孔径类
+By 周王哲
+2024.7.11
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
