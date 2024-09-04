@@ -29,7 +29,6 @@ class Lens:
         self.t = t
         self.complex_amplitude_t = None
         self.phase = None
-        self.phase_2pi = None
         self.mask = None
         self.amplitude = None
 
@@ -68,17 +67,17 @@ class Lens:
         for i, a_i in enumerate(a):  # enumerate组合为一个索引序列，同时列出数据和数据下标
             self.phase += m * a_i * (self.Grid.d2_r / r_0) ** (2 * (i + 1))
         self.phase = self.phase  # zemax中相位图以角度为单位，此处以弧度
-        self.phase_2pi = np.mod(self.phase, 2 * np.pi)
+        phase_2pi = np.mod(self.phase, 2 * np.pi)
         if d > 0:
             interval = 2 * np.pi / d
             # 计算离散相位
-            self.phase_2pi = (np.floor(self.phase_2pi / interval) + 1 / 2) * interval
-            self.phase_2pi = self.phase_2pi * self.mask
-            self.phase = self.phase_2pi
+            self.phase_num = np.floor(phase_2pi / interval)
+            phase_2pi = (np.floor(phase_2pi / interval) + 1 / 2) * interval
+            phase_2pi = phase_2pi * self.mask
+            self.phase = phase_2pi
         else:
             print("需输入正确的离散值,结果未离散")
             self.phase = self.phase * self.mask
-            self.phase_2pi = self.phase_2pi * self.mask
         self.amplitude = np.ones_like(self.Grid.d2_r) * self.mask
         self.complex_amplitude_t = self.amplitude * np.exp(1j * self.phase) * self.t * self.mask  # 复振幅透过率
 
@@ -105,8 +104,8 @@ class Lens:
         self.complex_amplitude_t = self.amplitude * np.exp(1j * self.phase) * self.t * self.mask
 
     def square_hole(self, lenth_x, lenth_y):
-        mask_index = (abs(self.Grid.d2_x) <= lenth_x / 2) & (abs(self.Grid.d2_x) <= lenth_y / 2) & (
-                    self.Grid.d2_y <= y) & (self.Grid.d2_y >= -y)
+        mask_index = (abs(self.Grid.d2_x) <= lenth_x / 2) & (abs(self.Grid.d2_x) >= - lenth_x / 2) & (
+                    self.Grid.d2_y <= lenth_y / 2) & (self.Grid.d2_y >= - lenth_y / 2)
         self.mask = np.zeros_like(self.Grid.d2_r)
         self.mask[mask_index] = 1
         self.amplitude = np.ones_like(self.Grid.d2_r) * self.mask

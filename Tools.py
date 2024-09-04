@@ -94,16 +94,20 @@ def calculate_fwhm(r, intensity, gpu_acceleration=False):
 """根据psf推算mtf"""
 
 
-def calculate_mtf(psf, Grid, gpu_acceleration=False):
+def calculate_mtf(psf, Grid, zero_coef=1e4, gpu_acceleration=False):
     """
     计算MTF
     psf: 点扩散函数
+    zero_coef: 置零系数，认为小于最大值/zero_coef的值视为0
     return: 调制传递函数
     """
     xp = cp if gpu_acceleration else np
-    lsf_x = np.trapz(psf,dx=Grid.step,axis=0) #对y积分
-    lsf_y = np.trapz(psf, dx=Grid.step, axis=1)  # 对x积分
+    psf[psf < np.max(psf) / zero_coef] = 0
+    lsf_x = xp.trapz(psf, dx=Grid.step, axis=0)  #对y积分
+    lsf_y = xp.trapz(psf, dx=Grid.step, axis=1)  # 对x积分
     mtf_x = xp.abs(xp.fft.fftshift(xp.fft.fft(lsf_x)))
     mtf_y = xp.abs(xp.fft.fftshift(xp.fft.fft(lsf_y)))
-    return mtf_x,mtf_y
-
+    N = len(mtf_x)
+    mtf_x = mtf_x[N//2:]
+    mtf_y = mtf_y[N//2:]
+    return mtf_x, mtf_y, psf

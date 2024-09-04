@@ -20,7 +20,7 @@ class LayerBinary2:
         unit_period: 单元结构周期 单位为mm
         unit_radius: 单元结构半径 单位为mm 数组 从低相位到高相位排布
         mult_coef_a: 二元面多项式系数 数组
-        diff_coef_m： 二元面�系数
+        diff_coef_m： 二元面系数
         """
         self.y_coordinate = np.array([],dtype=int)
         self.x_coordinate = np.array([],dtype=int)
@@ -34,6 +34,7 @@ class LayerBinary2:
 
     # 单元结构圆柱,正方形排布方式
     def cylinder_square(self):
+        # 圆对称
         x_number = int(2 * self.lens_radius // self.unit_period)
         if x_number % 2 == 0:
             x_number = x_number + 1
