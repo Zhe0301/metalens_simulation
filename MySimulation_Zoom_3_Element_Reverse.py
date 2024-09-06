@@ -9,8 +9,9 @@ import sys
 
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
-
+from loguru import logger
 import matplotlib
+from tqdm import tqdm
 
 config = {"font.family": 'serif',
           "font.size": 20,
@@ -43,7 +44,8 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     sampling_point x-z截面计算的采样点数，为0时不计算
     interval x-z截面采样时焦点前后的距离，为0时不计算，单位mm
     """
-
+    if gpu_acceleration:
+        logger.info("Using GPU to accelerate computing")
     t0 = time.time()
     if gpu_acceleration:  # 使用GPU加速先进行数据转换
         G.d2_fft_x = cp.asarray(G.d2_fft_x)
@@ -58,7 +60,7 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     else:
         xp = np
 
-    p_b = PropOperator(G, S.wavelength_vacuum, d_lens, refractive_index, method=method,
+    p_b = PropOperator(G, S.wavelength_vacuum, d_lens, refractive_index = refractive_index, method=method,
                        gpu_acceleration=gpu_acceleration)  # 基底厚度(base) 传播
     p_12 = PropOperator(G, S.wavelength_vacuum, d_12, method=method, gpu_acceleration=gpu_acceleration)  # d_12 传播
     p_23 = PropOperator(G, S.wavelength_vacuum, d_23, method=method, gpu_acceleration=gpu_acceleration)  # d_23 传播
@@ -66,22 +68,27 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
                          gpu_acceleration=gpu_acceleration)  # 后截距(back focal length) 传播
     t1 = time.time()
     elapsed_time = t1 - t0
-    print("Parameter initialization is completed. Elapsed time: {:.2f} s".format(elapsed_time))
-    print("Calculating light propagation. 1/6 ")
+    logger.success("Parameter initialization is completed. Elapsed time: {:.2f} s".format(elapsed_time))
+    logger.info("Calculating light propagation. 1/6 ")
     e_1 = p_b.prop(S.complex_amplitude)
-    print("Calculating light propagation. 2/6 ")
+    logger.info("Calculating light propagation. 2/6 ")
     e_2 = p_12.prop(e_1 * L1.complex_amplitude_t)
-    print("Calculating light propagation. 3/6 ")
+    del e_1
+    logger.info("Calculating light propagation. 3/6 ")
     e_3 = p_b.prop(e_2)
-    print("Calculating light propagation. 4/6 ")
+    del e_2
+    logger.info("Calculating light propagation. 4/6 ")
     e_4 = p_23.prop(e_3 * L2.complex_amplitude_t)
-    print("Calculating light propagation. 5/6 ")
+    del e_3
+    logger.info("Calculating light propagation. 5/6 ")
     e_5 = p_b.prop(e_4)
-    print("Calculating light propagation. 6/6 ")
-    e_6 = p_bfl.prop(e_5 * L3.complex_amplitude_t)
+    del e_4
+    logger.info("Calculating light propagation. 6/6 ")
+    e_5 = e_5 * L3.complex_amplitude_t
+    e_6 = p_bfl.prop(e_5)
     t2 = time.time()
     elapsed_time = t2 - t1
-    print("Light propagation calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
+    logger.success("Light propagation calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
 
     """MTF计算"""
     mtf_x, mtf_y, psf = calculate_mtf(xp.power(xp.abs(e_6), 2), G, gpu_acceleration=gpu_acceleration)
@@ -91,32 +98,29 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     source_energy = xp.sum(xp.power(xp.abs(S.complex_amplitude * L1.mask), 2))  # 光源入射的能量
     image_energy = xp.sum(xp.power(xp.abs(e_6), 2))  # 像面上的能量
     transmission_efficient = image_energy / source_energy  # 传输效率
-    print(r"Transmission efficient: {:.2f}%".format(transmission_efficient * 100))
-    ratio_e = (calculate_enclosed_energy_ratio(G.axis[mid_index_0:], xp.abs(e_6[mid_index_0, mid_index_0:]) ** 2)
-               * transmission_efficient)
+    logger.info(r"Transmission efficient: {:.2f}%".format(transmission_efficient * 100))
+    ratio_e = (calculate_enclosed_energy_ratio(G.axis[mid_index_0:], xp.abs(e_6[mid_index_0, mid_index_0:]) ** 2))
     fwhm = calculate_fwhm(G.axis[mid_index_0:], xp.abs(e_6[mid_index_0, mid_index_0:]) ** 2)
-    print("full width at half maximum is {:.2f} μm".format(fwhm * 1000))
+    logger.info("full width at half maximum is {:.2f} μm".format(fwhm * 1000))
 
     t3 = time.time()
 
     """后截距的y-z截面计算"""
     if interval > 0 and sampling_point > 0:
-        print("Calculating the light field in y-z cross section")
+        logger.info("Calculating the light field in y-z cross section")
         if gpu_acceleration:
             e_5 = cp.asarray(e_5)
         dist_array = np.linspace(d_bfl - interval, d_bfl + interval, sampling_point)
         e_yz = xp.zeros((len(G.axis), len(dist_array)), dtype=complex)
-        for i in range(len(dist_array)):
-            p_bfl = PropOperator(G.d2_fft_x, G.d2_fft_y, S.wavelength_vacuum, dist_array[i])
+        for i in tqdm(range(len(dist_array))):
+            p_bfl = PropOperator(G, S.wavelength_vacuum, dist_array[i], method=method,
+                         gpu_acceleration=gpu_acceleration)
             e_yz_d = p_bfl.prop(e_5)
             e_yz[:, i] = e_yz_d[mid_index_0, :]
-            progress = (i + 1) / len(dist_array) * 100
-            # 输出进度
-            sys.stdout.write(f"\rProgress: {progress:.2f}%")
-            sys.stdout.flush()  # 输出到屏幕
+
         t4 = time.time()
         elapsed_time = t4 - t3
-        print("\n y-z cross section calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
+        logger.info("\n y-z cross section calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
         if gpu_acceleration:
             e_yz = cp.asnumpy(e_yz)
 
@@ -140,10 +144,10 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     plt.title('MTF')
     plt.xlabel('Frequency(lp/mm)')
     plt.ylabel(r'MTF')
-    plt.plot(G.axis_fft[len(mtf_x):], mtf_x, G.axis_fft[len(mtf_x):], mtf_y)
+    plt.plot(G.axis_fft[len(mtf_x):], mtf_x,linewidth=2,label=r'$x$')
+    plt.plot(G.axis_fft[len(mtf_x):], mtf_y,linewidth=2,label=r'$y$',linestyle="--")
     plt.grid()
-    plt.legend(r'$x$')
-    plt.legend(r'$y$')
+    plt.legend()
     plt.subplot(1, 2, 2)
     plt.title('PSF')
     plt.imshow(psf, cmap="rainbow")
@@ -261,11 +265,11 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
         plt.savefig(save_path + 'x-z_cross_section_{:.1f}.png'.format(efl))
         if show:
             plt.show()
-        np.save("e_5_f_{:.1f}.npy".format(efl), e_5)
-        np.save("e_6_f_{:.1f}.npy".format(efl), e_6)
-        np.save("e_yz_f_{:.1f}.npy".format(efl), e_yz)
+        np.save(save_path+"e_5_f_{:.1f}.npy".format(efl), e_5)
+        np.save(save_path+"e_6_f_{:.1f}.npy".format(efl), e_6)
+        np.save(save_path+"e_yz_f_{:.1f}.npy".format(efl), e_yz)
         return e_5, e_6, e_yz
     else:
-        np.save("e_5_f_{:.1f}.npy".format(efl), e_5)
-        np.save("e_6_f_{:.1f}.npy".format(efl), e_6)
+        np.save(save_path+"e_5_f_{:.1f}.npy".format(efl), e_5)
+        np.save(save_path+"e_6_f_{:.1f}.npy".format(efl), e_6)
         return e_5, e_6

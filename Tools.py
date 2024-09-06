@@ -109,5 +109,7 @@ def calculate_mtf(psf, Grid, zero_coef=1e4, gpu_acceleration=False):
     mtf_y = xp.abs(xp.fft.fftshift(xp.fft.fft(lsf_y)))
     N = len(mtf_x)
     mtf_x = mtf_x[N//2:]
+    mtf_x = mtf_x/xp.max(mtf_x) # 归一化
     mtf_y = mtf_y[N//2:]
+    mtf_y = mtf_y / xp.max(mtf_y)
     return mtf_x, mtf_y, psf
