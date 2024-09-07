@@ -93,7 +93,7 @@ if __name__ == '__main__':
     lens_radius = 0.92
     name = "lens3"
     unit_radius = [48e-6, 56e-6, 59e-6, 61e-6, 63e-6, 64e-6, 67e-6, 76e-6]
-    save_path = r"E:/research/WavePropagation/metalens_simulation/Zoom_6×/20240904_discrete_8/"
+    save_path = r"E:/Research/WavePropagation/metalens_simulation/Zoom_6×/20240904_discrete_8/"
     x_coordinate, y_coordinate, radius_list = binary2_cylinder_square(save_path,name,lens_radius,347e-6,unit_radius,mult_coef_a)
     if not os.path.exists(save_path+r"temp_GDS/"):
         # 如果不存在则创建临时文件夹
