@@ -83,15 +83,15 @@ def draw_circle(x_coordinate,y_coordinate,radius_list,name,save_path,id=0):
 
 
 if __name__ == '__main__':
-    # mult_coef_a = [-1.134335348014e3, 1.997482968732e2, -7.744689756243e2, 2.350435931257e3, 3.245672141492e3, -2.507104417945e4] # Lens1
-    # lens_radius = 0.35
-    # name = "lens1"
+    mult_coef_a = [-1.134335348014e3, 1.997482968732e2, -7.744689756243e2, 2.350435931257e3, 3.245672141492e3, -2.507104417945e4] # Lens1
+    lens_radius = 0.375
+    name = "lens1"
     # mult_coef_a = [6.658448719319e3, -1.180564189085e4, 3.123599533268e5,-8.915821224249e6, 1.353360477873e8, -8.261794056944e8] # Lens2
-    # lens_radius = 0.24
+    # lens_radius = 0.25
     # name = "lens2"
-    mult_coef_a = [-3.655457426687e3, 2.169008952537e2, -1.402136806599e2, 2.517459986023e2, -2.498340816648e2, 9.683857736021e1] # Lens3
-    lens_radius = 0.92
-    name = "lens3"
+    # mult_coef_a = [-3.655457426687e3, 2.169008952537e2, -1.402136806599e2, 2.517459986023e2, -2.498340816648e2, 9.683857736021e1] # Lens3
+    # lens_radius = 0.95
+    # name = "lens3"
     unit_radius = [48e-6, 56e-6, 59e-6, 61e-6, 63e-6, 64e-6, 67e-6, 76e-6]
     save_path = r"E:/Research/WavePropagation/metalens_simulation/Zoom_6×/20240904_discrete_8/"
     x_coordinate, y_coordinate, radius_list = binary2_cylinder_square(save_path,name,lens_radius,347e-6,unit_radius,mult_coef_a)

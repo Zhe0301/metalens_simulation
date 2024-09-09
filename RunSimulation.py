@@ -83,18 +83,18 @@ for i in range(len(efl)):
 
     # 镜片
     L1 = Lens(G)
-    L1.binary2_d(0.35, 1, 1, [-1.134335348014e3, 1.997482968732e2, -7.744689756243e2,
+    L1.binary2_d(0.375, 1, 1, [-1.134335348014e3, 1.997482968732e2, -7.744689756243e2,
                               2.350435931257e3, 3.245672141492e3, -2.507104417945e4], d=discrete)
 
     np.save(save_path + "Lens1.npz",L1.phase_2pi)
     # L1.plot_phase(save_path + 'L1_d_')
     L2 = Lens(G)
-    L2.binary2_d(0.24, 1, 1, [6.658448719319e3, -1.180564189085e4, 3.123599533268e5,
+    L2.binary2_d(0.25, 1, 1, [6.658448719319e3, -1.180564189085e4, 3.123599533268e5,
                               -8.915821224249e6, 1.353360477873e8, -8.261794056944e8], d=discrete)
     np.save(save_path + "Lens2.npz", L2.phase_2pi)
     # L2.plot_phase(save_path + 'L2_d_')
     L3 = Lens(G)
-    L3.binary2_d(0.92, 1, 1, [-3.655457426687e3, 2.169008952537e2, -1.402136806599e2,
+    L3.binary2_d(0.95, 1, 1, [-3.655457426687e3, 2.169008952537e2, -1.402136806599e2,
                               2.517459986023e2, -2.498340816648e2, 9.683857736021e1], d=discrete)
     np.save(save_path + "Lens3.npz", L3.phase_2pi)
     # L3.plot_phase(save_path + 'L3_d_')
@@ -106,5 +106,5 @@ for i in range(len(efl)):
     method = "BL-AS"
     logger.info("Using {} method".format(method))
     three_element_zoom_system(s, L1, L2, L3, G, d_lens, d_12[i], d_23[i], d_bfl[i], efl[i], refractive_index,
-                              save_path, magnification=200, sampling_point=100, interval=1, method=method, show=False,
+                              save_path, magnification=200, sampling_point=0, interval=1, method=method, show=True,
                               gpu_acceleration=False)
