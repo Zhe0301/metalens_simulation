@@ -47,19 +47,21 @@ d_bfl = [1.975436417502, 2.193393520095, 2.347653672864, 2.477959067576, 2.60329
 # 仿真参数
 wavelength_vacuum = 632.8 * 1e-6  # 真空波长，单位mm
 refractive_index = 1.457  # SiO2折射率
-name = "Actual cylinder"
+name = "actual_cylinder_r_0_7"
 # 相位离散量
 discrete = 8
-unit_phase = np.linspace(0, 2 * np.pi, discrete, endpoint=False) + np.pi / discrete
-unit_t = np.ones_like(unit_phase)
+# 理想离散
+# unit_phase = np.linspace(0, 2 * np.pi, discrete, endpoint=False) + np.pi / discrete
+# unit_t = np.ones_like(unit_phase)
+# points = np.linspace(0, 1, discrete + 1)
+# boundaries = np.array([[points[i], points[i + 1]] for i in range(discrete)])
+# boundaries = boundaries * 2 * np.pi
+# 实际离散
+unit_phase = [0,0.70709, 1.459945, 2.271432, 3.32325, 3.79184, 4.65255, 5.47988]
+unit_t = [0.972692, 0.908683, 0.793232, 0.701244, 0.694566, 0.728387, 0.815463, 0.897235]
 points = np.linspace(0, 1, discrete + 1)
 boundaries = np.array([[points[i], points[i + 1]] for i in range(discrete)])
 boundaries = boundaries * 2 * np.pi
-# 实际离散
-# unit_phase = []
-# unit_t = []
-# points = np.linspace(0, 1, discrete + 1)
-# boundaries = np.array([[points[i], points[i + 1]] for i in range(discrete)])
 # 建立仿真目录
 current_date = datetime.now().strftime('%Y%m%d')
 # %y 两位数的年份表示（00-99）
@@ -94,7 +96,7 @@ for i in range(len(efl)):
 
     # 镜片
     L1 = Lens(G)
-    L1.binary2_d(0.375, 1, 1, [-1.134335348014e3, 1.997482968732e2, -7.744689756243e2,
+    L1.binary2_d(0.35, 1, 1, [-1.134335348014e3, 1.997482968732e2, -7.744689756243e2,
                                2.350435931257e3, 3.245672141492e3, -2.507104417945e4], unit_phase, unit_t, boundaries)
 
     np.save(save_path + "Lens1.npz", L1.phase)
@@ -116,5 +118,5 @@ for i in range(len(efl)):
     method = "BL-AS"
     logger.info("Using {} method".format(method))
     three_element_zoom_system(s, L1, L2, L3, G, d_lens, d_12[i], d_23[i], d_bfl[i], efl[i], refractive_index,
-                              save_path, magnification=200, sampling_point=0, interval=1, method=method, show=True,
+                              save_path, magnification=200, sampling_point=100, interval=1, method=method, show=False,
                               gpu_acceleration=False)
