@@ -4,6 +4,7 @@ By 周王哲
 2024.7.22
 """
 import os
+import time
 from datetime import datetime
 
 from loguru import logger
@@ -34,20 +35,27 @@ from Tools import *
 
 # 建立仿真网络
 
-period = 347e-6  # 按单元结构周期仿真mm
-length = 2
-num_points = round(length / period)
+period =500e-6  # 按单元结构周期仿真mm
+length = 3
+num_points = np.round(length / period)
 # num_points = 4096
-
 G = Grid(num_points, num_points * period)
-efl = [0.7, 1.4, 2.1, 2.8, 3.5, 4.2]  # 有效焦距，单位mm，用于图片命名
-d_12 = [1.100000006257, 1.785825240396, 2.083347319444, 2.25568813143, 2.364753377126, 2.386287993685]
-d_23 = [2.924563548595, 2.020781241757, 1.568999114497, 1.26635292265, 1.031953399776, 7.999999810325e-1]
-d_bfl = [1.975436417502, 2.193393520095, 2.347653672864, 2.477959067576, 2.60329289574, 2.813712156567]
-# 仿真参数
-wavelength_vacuum = 632.8 * 1e-6  # 真空波长，单位mm
-refractive_index = 1.457  # SiO2折射率
-name = "actual_cylinder_r_0_7"
+
+# 建立基本结构参数
+efl = [0.8, 1.6, 2.4, 3.2, 4, 4.8]  # 有效焦距，单位mm，用于图片命名
+d_12 = [1.000000131063, 1.846692355066, 2.222548182242, 2.452026972933, 2.6206631695450, 2.776068441725]
+d_23 = [3.442929821959, 2.341826841284, 1.798827702873, 1.444344104929, 1.186273959296, 9.999998024761e-1]
+d_bfl = [2.307069517468, 2.561481226825, 2.728624214413, 2.853629959039, 2.943064336454, 2.973929452009]
+
+
+# 波长和折射率
+wavelength_vacuum = 1064 * 1e-6  # 真空波长，单位mm
+refractive_index = 1.5094756  # SiO2折射率
+
+name = "actual_cylinder_1064"
+# name = "ideal_1064"
+# 是否使用GPU加速
+gpu_acceleration=True
 # 相位离散量
 discrete = 8
 # 理想离散
@@ -57,8 +65,9 @@ discrete = 8
 # boundaries = np.array([[points[i], points[i + 1]] for i in range(discrete)])
 # boundaries = boundaries * 2 * np.pi
 # 实际离散
-unit_phase = [0,0.70709, 1.459945, 2.271432, 3.32325, 3.79184, 4.65255, 5.47988]
-unit_t = [0.972692, 0.908683, 0.793232, 0.701244, 0.694566, 0.728387, 0.815463, 0.897235]
+unit_phase = [0, 0.8051036, 1.554511, 2.436956, 3.189646, 3.877856, 4.779246, 5.468306]
+
+unit_t = [0.948735, 0.886475, 0.810874, 0.760933, 0.743341, 0.728135, 0.800406, 0.823376]
 points = np.linspace(0, 1, discrete + 1)
 boundaries = np.array([[points[i], points[i + 1]] for i in range(discrete)])
 boundaries = boundaries * 2 * np.pi
@@ -89,29 +98,31 @@ for i in range(len(efl)):
     logger.info("unit phase = {}".format(unit_phase))
     logger.info("unit transmittance = {}".format(unit_t))
     logger.info("boundaries = {}".format(boundaries))
-
+    t0 = time.time()
     # 光源
     s = Source(G.d2_x, G.d2_y, wavelength_vacuum, 1)
     s.plane_wave(np.pi / 2, np.pi / 2)
 
     # 镜片
     L1 = Lens(G)
-    L1.binary2_d(0.35, 1, 1, [-1.134335348014e3, 1.997482968732e2, -7.744689756243e2,
-                               2.350435931257e3, 3.245672141492e3, -2.507104417945e4], unit_phase, unit_t, boundaries)
+    L1.binary2_d(0.72, 1, 1, [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491], unit_phase, unit_t, boundaries,
+                 gpu_acceleration=gpu_acceleration)
 
     np.save(save_path + "Lens1.npz", L1.phase)
     # L1.plot_phase(save_path + 'L1_d_')
     L2 = Lens(G)
-    L2.binary2_d(0.25, 1, 1, [6.658448719319e3, -1.180564189085e4, 3.123599533268e5,
-                              -8.915821224249e6, 1.353360477873e8, -8.261794056944e8], unit_phase, unit_t, boundaries)
+    L2.binary2_d(0.3, 1, 1, [3.157248960338e3,-2.062812665413e3, 1.207061495482e4,-6.173754564586e4], unit_phase, unit_t, boundaries,
+                 gpu_acceleration=gpu_acceleration)
     np.save(save_path + "Lens2.npz", L2.phase)
     # L2.plot_phase(save_path + 'L2_d_')
     L3 = Lens(G)
-    L3.binary2_d(0.95, 1, 1, [-3.655457426687e3, 2.169008952537e2, -1.402136806599e2,
-                              2.517459986023e2, -2.498340816648e2, 9.683857736021e1], unit_phase, unit_t, boundaries)
+    L3.binary2_d(1.2, 1, 1, [-1.845376080337e3, 6.935299381526e1, -7.928934283067,	1.711027879901], unit_phase, unit_t, boundaries,
+                 gpu_acceleration=gpu_acceleration)
     np.save(save_path + "Lens3.npz", L3.phase)
+    t1 = time.time()
+    logger.success("lens initialization complete, Elapsed time: {:.2f}".format(t1-t0))
     # L3.plot_phase(save_path + 'L3_d_')
-    d_lens = 0.6
+    d_lens = 0.75
 
     # method = 'FFT-DI'
     # method = 'AS'
@@ -119,4 +130,4 @@ for i in range(len(efl)):
     logger.info("Using {} method".format(method))
     three_element_zoom_system(s, L1, L2, L3, G, d_lens, d_12[i], d_23[i], d_bfl[i], efl[i], refractive_index,
                               save_path, magnification=200, sampling_point=100, interval=1, method=method, show=False,
-                              gpu_acceleration=False)
+                              gpu_acceleration=True)

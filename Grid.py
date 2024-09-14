@@ -3,6 +3,8 @@
 By 周王哲
 2023.7.22
 """
+from os import cpu_count
+
 import numpy as np
 
 

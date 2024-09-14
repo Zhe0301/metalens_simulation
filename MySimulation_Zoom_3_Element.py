@@ -84,7 +84,7 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     print("Light propagation calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
 
     """MTF计算"""
-    mtf_x, mtf_y, psf = calculate_mtf(xp.power(xp.abs(e_6), 2), G, gpu_acceleration=gpu_acceleration)
+    mtf_x, mtf_y, psf = calculate_mtf(xp.power(xp.abs(e_6), 2), G.step, gpu_acceleration=gpu_acceleration)
 
     """圈入能量计算"""
     mid_index_0 = len(G.axis) // 2  # 坐标中心位置

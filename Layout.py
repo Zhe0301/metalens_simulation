@@ -83,18 +83,19 @@ def draw_circle(x_coordinate,y_coordinate,radius_list,name,save_path,id=0):
 
 
 if __name__ == '__main__':
-    mult_coef_a = [-1.134335348014e3, 1.997482968732e2, -7.744689756243e2, 2.350435931257e3, 3.245672141492e3, -2.507104417945e4] # Lens1
-    lens_radius = 0.375
-    name = "lens1"
-    # mult_coef_a = [6.658448719319e3, -1.180564189085e4, 3.123599533268e5,-8.915821224249e6, 1.353360477873e8, -8.261794056944e8] # Lens2
-    # lens_radius = 0.25
-    # name = "lens2"
-    # mult_coef_a = [-3.655457426687e3, 2.169008952537e2, -1.402136806599e2, 2.517459986023e2, -2.498340816648e2, 9.683857736021e1] # Lens3
-    # lens_radius = 0.95
+    # mult_coef_a = [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491] # Lens1
+    # lens_radius = 0.75
+    # name = "lens1"
+    mult_coef_a = [3.157248960338e3,-2.062812665413e3, 1.207061495482e4, -6.173754564586e4] # Lens2
+    lens_radius = 0.31
+    name = "lens2"
+    # mult_coef_a = [-1.845376080337e3, 6.935299381526e1, -7.928934283067, 1.711027879901] # Lens3
+    # lens_radius = 1.2
     # name = "lens3"
-    unit_radius = [48e-6, 56e-6, 59e-6, 61e-6, 63e-6, 64e-6, 67e-6, 76e-6]
-    save_path = r"E:/Research/WavePropagation/metalens_simulation/Zoom_6×/20240904_discrete_8/"
-    x_coordinate, y_coordinate, radius_list = binary2_cylinder_square(save_path,name,lens_radius,347e-6,unit_radius,mult_coef_a)
+    unit_radius = [80e-6, 96e-6, 103e-6, 109e-6, 113e-6, 117e-6, 128e-6, 137e-6]
+    unit_period = 500e-6
+    save_path = r"E:/Research/WavePropagation/metalens_simulation/Zoom_6×/20240913_actual_cylinder_1064/"
+    x_coordinate, y_coordinate, radius_list = binary2_cylinder_square(save_path, name, lens_radius, unit_period, unit_radius, mult_coef_a)
     if not os.path.exists(save_path+r"temp_GDS/"):
         # 如果不存在则创建临时文件夹
         os.makedirs(save_path+r"temp_GDS/")

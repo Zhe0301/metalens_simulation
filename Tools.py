@@ -94,17 +94,21 @@ def calculate_fwhm(r, intensity, gpu_acceleration=False):
 """根据psf推算mtf"""
 
 
-def calculate_mtf(psf, Grid, zero_coef=1e4, gpu_acceleration=False):
+def calculate_mtf(psf, step, zero_coef=1e5, gpu_acceleration=False):
     """
     计算MTF
-    psf: 点扩散函数
-    zero_coef: 置零系数，认为小于最大值/zero_coef的值视为0
-    return: 调制传递函数
+    :param:psf: 点扩散函数
+    :param:step: 步长 mm
+    :param:zero_coef: 置零系数，认为小于最大值/zero_coef的值视为0
+    :param:gpu_acceleration: 是否使用GPU加速计算
+    :return: x,y方向调制传递函数，置零处理后的psf
     """
     xp = cp if gpu_acceleration else np
-    psf[psf < np.max(psf) / zero_coef] = 0
-    lsf_x = xp.trapz(psf, dx=Grid.step, axis=0)  #对y积分
-    lsf_y = xp.trapz(psf, dx=Grid.step, axis=1)  # 对x积分
+    if gpu_acceleration:
+        psf = cp.asarray(psf)
+    psf[psf < xp.max(psf) / zero_coef] = 0
+    lsf_x = xp.trapz(psf, dx=step, axis=0)  #对y积分
+    lsf_y = xp.trapz(psf, dx=step, axis=1)  # 对x积分
     mtf_x = xp.abs(xp.fft.fftshift(xp.fft.fft(lsf_x)))
     mtf_y = xp.abs(xp.fft.fftshift(xp.fft.fft(lsf_y)))
     N = len(mtf_x)
@@ -112,4 +116,8 @@ def calculate_mtf(psf, Grid, zero_coef=1e4, gpu_acceleration=False):
     mtf_x = mtf_x/xp.max(mtf_x) # 归一化
     mtf_y = mtf_y[N//2:]
     mtf_y = mtf_y / xp.max(mtf_y)
+    if gpu_acceleration:
+        mtf_x = cp.asnumpy(mtf_x)
+        mtf_y = cp.asnumpy(mtf_y)
+        psf = cp.asnumpy(psf)
     return mtf_x, mtf_y, psf

@@ -47,18 +47,6 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     if gpu_acceleration:
         logger.info("Using GPU to accelerate computing")
     t0 = time.time()
-    if gpu_acceleration:  # 使用GPU加速先进行数据转换
-        G.d2_fft_x = cp.asarray(G.d2_fft_x)
-        G.d2_fft_y = cp.asarray(G.d2_fft_y)
-        G.axis = cp.asarray(G.axis)
-        L1.complex_amplitude_t = cp.asarray(L1.complex_amplitude_t)
-        L1.mask = cp.asarray(L1.mask)
-        L2.complex_amplitude_t = cp.asarray(L2.complex_amplitude_t)
-        L3.complex_amplitude_t = cp.asarray(L3.complex_amplitude_t)
-        S.complex_amplitude = cp.asarray(S.complex_amplitude)
-        xp = cp
-    else:
-        xp = np
 
     p_b = PropOperator(G, S.wavelength_vacuum, d_lens, refractive_index = refractive_index, method=method,
                        gpu_acceleration=gpu_acceleration)  # 基底厚度(base) 传播
@@ -91,53 +79,7 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     logger.success("Light propagation calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
 
     """MTF计算"""
-    mtf_x, mtf_y, psf = calculate_mtf(xp.power(xp.abs(e_6), 2), G, gpu_acceleration=gpu_acceleration)
-
-    """圈入能量计算"""
-    mid_index_0 = len(G.axis) // 2  # 坐标中心位置
-    source_energy = xp.sum(xp.power(xp.abs(S.complex_amplitude * L1.mask), 2))  # 光源入射的能量
-    image_energy = xp.sum(xp.power(xp.abs(e_6), 2))  # 像面上的能量
-    transmission_efficient = image_energy / source_energy  # 传输效率
-    logger.info(r"Transmission efficient: {:.2f}%".format(transmission_efficient * 100))
-    ratio_e = (calculate_enclosed_energy_ratio(G.axis[mid_index_0:], xp.abs(e_6[mid_index_0, mid_index_0:]) ** 2))
-    fwhm = calculate_fwhm(G.axis[mid_index_0:], xp.abs(e_6[mid_index_0, mid_index_0:]) ** 2)
-    logger.info("full width at half maximum is {:.2f} μm".format(fwhm * 1000))
-
-    t3 = time.time()
-
-    """后截距的y-z截面计算"""
-    if interval > 0 and sampling_point > 0:
-        logger.info("Calculating the light field in y-z cross section")
-        if gpu_acceleration:
-            e_5 = cp.asarray(e_5)
-        dist_array = np.linspace(d_bfl - interval, d_bfl + interval, sampling_point)
-        e_yz = xp.zeros((len(G.axis), len(dist_array)), dtype=complex)
-        for i in tqdm(range(len(dist_array))):
-            p_bfl = PropOperator(G, S.wavelength_vacuum, dist_array[i], method=method,
-                         gpu_acceleration=gpu_acceleration)
-            e_yz_d = p_bfl.prop(e_5)
-            e_yz[:, i] = e_yz_d[mid_index_0, :]
-
-        t4 = time.time()
-        elapsed_time = t4 - t3
-        logger.info("\n y-z cross section calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
-        if gpu_acceleration:
-            e_yz = cp.asnumpy(e_yz)
-
-    if gpu_acceleration:
-        e_5 = cp.asnumpy(e_5)
-        e_6 = cp.asnumpy(e_6)
-        G.d2_fft_x = cp.asnumpy(G.d2_fft_x)
-        G.d2_fft_y = cp.asnumpy(G.d2_fft_y)
-        G.axis = cp.asnumpy(G.axis)
-        ratio_e = cp.asnumpy(ratio_e)
-        fwhm = cp.asnumpy(fwhm)
-        mtf_x = cp.asnumpy(mtf_x)
-        mtf_y = cp.asnumpy(mtf_y)
-        psf = cp.asnumpy(psf)
-
-    """统一绘图"""
-
+    mtf_x, mtf_y, psf = calculate_mtf(np.power(np.abs(e_6), 2), G.step, gpu_acceleration=gpu_acceleration)
     # MTF绘图
     plt.figure(figsize=(16, 7))
     plt.subplot(1, 2, 1)
@@ -157,6 +99,16 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     plt.savefig(save_path + 'MTF_f_{:.1f}.png'.format(efl))
     if show:
         plt.show()
+    plt.close()
+    """圈入能量计算"""
+    mid_index_0 = len(G.axis) // 2  # 坐标中心位置
+    source_energy = np.sum(np.power(np.abs(S.complex_amplitude * L1.mask), 2))  # 光源入射的能量
+    image_energy = np.sum(np.power(np.abs(e_6), 2))  # 像面上的能量
+    transmission_efficient = image_energy / source_energy  # 传输效率
+    logger.info(r"Transmission efficient: {:.2f}%".format(transmission_efficient * 100))
+    ratio_e = (calculate_enclosed_energy_ratio(G.axis[mid_index_0:], np.abs(e_6[mid_index_0, mid_index_0:]) ** 2))
+    fwhm = calculate_fwhm(G.axis[mid_index_0:], np.abs(e_6[mid_index_0, mid_index_0:]) ** 2)
+    logger.info("full width at half maximum is {:.2f} μm".format(fwhm * 1000))
 
     # 像面绘图
     plt.figure(figsize=(16, 14))
@@ -188,6 +140,7 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     plt.grid()
     plt.tight_layout()
     plt.savefig(save_path + 'image_f_{:.1f}.png'.format(efl))
+
 
     # 放大像面并插值绘图
     t3 = time.time()
@@ -249,10 +202,27 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     plt.savefig(save_path + 'enclosed_energy_ratio_f_{:.1f}.png'.format(efl))
     if show:
         plt.show()
+    plt.close()
 
-    t4 = time.time()
-    # y-z平面绘图
+    t3 = time.time()
+
+    """后截距的y-z截面计算"""
     if interval > 0 and sampling_point > 0:
+        logger.info("Calculating the light field in y-z cross section")
+        if gpu_acceleration:
+            e_5 = cp.asarray(e_5)
+        dist_array = np.linspace(d_bfl - interval, d_bfl + interval, sampling_point)
+        e_yz = np.zeros((len(G.axis), len(dist_array)), dtype=complex)
+        for i in tqdm(range(len(dist_array))):
+            p_bfl = PropOperator(G, S.wavelength_vacuum, dist_array[i], method=method,
+                         gpu_acceleration=gpu_acceleration)
+            e_yz_d = p_bfl.prop(e_5)
+            e_yz[:, i] = e_yz_d[mid_index_0, :]
+
+        t4 = time.time()
+        elapsed_time = t4 - t3
+        logger.info("\n y-z cross section calculation is completed. Elapsed time: {:.2f} s".format(elapsed_time))
+
         z, x = np.meshgrid(dist_array, G.axis)
         t5 = time.time()
         plt.figure(figsize=(9, 7))
@@ -265,6 +235,8 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
         plt.savefig(save_path + 'x-z_cross_section_{:.1f}.png'.format(efl))
         if show:
             plt.show()
+        plt.close()
+
         np.save(save_path+"e_5_f_{:.1f}.npy".format(efl), e_5)
         np.save(save_path+"e_6_f_{:.1f}.npy".format(efl), e_6)
         np.save(save_path+"e_yz_f_{:.1f}.npy".format(efl), e_yz)
