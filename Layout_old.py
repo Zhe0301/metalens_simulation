@@ -1,10 +1,12 @@
 """
 超透镜版图绘制
 周王哲
-2024.9.3
+2024.9.30
+使用旧的mirror和center函数，以适配旧版 Klayout 0.26.12
+gdsfactory == 7.27.1
 """
 import os
-
+import h5py
 import gdsfactory as gf
 import numpy as np
 from multiprocessing import Process
@@ -26,7 +28,7 @@ def binary2_cylinder_square(save_path, name, lens_radius, unit_period, unit_radi
     :param norm_radius: zemax二元面2归一化半径，默认为1
     :return:x_coordinate, y_coordinate, radius_list:一维数组，x，y坐标，对应的圆柱半径
     """
-    # 圆对称，仅画1/4区域
+    # 圆对称，仅画1/4 区域
     x_number = int(np.round(lens_radius / unit_period))  # 四舍五入
     x_list = np.arange(x_number + 1) * unit_period + unit_period / 2
     x_coordinate = np.array([])
@@ -51,11 +53,14 @@ def binary2_cylinder_square(save_path, name, lens_radius, unit_period, unit_radi
     radius_list = np.zeros_like(phase_number, dtype=float)
     for i in range(d):
         radius_list[phase_number == i] = unit_radius[i]
-
-    np.save(save_path + name + "_phase_number.npy", phase_number)
-    np.save(save_path + name + "_radius_list.npy", radius_list)
-    np.save(save_path + name + "_x_coordinate.npy", x_coordinate)
-    np.save(save_path + name + "_y_coordinate.npy", y_coordinate)
+    with h5py.File(save_path + name + '_phase_number.h5', 'w') as f:
+        dset = f.create_dataset('phase_number', data=phase_number, compression='gzip', compression_opts=9)
+    with h5py.File(save_path + name + '_radius_list.h5', 'w') as f:
+        dset = f.create_dataset('radius_list', data=phase_number, compression='gzip', compression_opts=9)
+    with h5py.File(save_path + name + '_x_coordinate.h5', 'w') as f:
+        dset = f.create_dataset('x_coordinate', data=phase_number, compression='gzip', compression_opts=9)
+    with h5py.File(save_path + name + '_y_coordinate.h5', 'w') as f:
+        dset = f.create_dataset('y_coordinate', data=phase_number, compression='gzip', compression_opts=9)
     return x_coordinate, y_coordinate, radius_list
 
     # 版图绘制
@@ -73,13 +78,14 @@ def draw_circle(x_coordinate, y_coordinate, radius_list, name, save_path, id=0):
     :return: 无
     """
     c = gf.Component()
-    c.name = id
+    c.name = str(id)
     for i in tqdm(range(len(x_coordinate)), desc="Task_{}".format(id)):
-        circle = gf.components.circle(radius_list[i] * 1e3,
-                                      layer=(1, 0))
+        circle = gf.components.circle(radius=radius_list[i] * 1e3,layer=(1, 0))
         unit = c << circle
-        unit.dcenter = [x_coordinate[i] * 1e3, y_coordinate[i] * 1e3]
-    c.write_gds(save_path + "temp_{}_{}.gds".format(name, id))
+        unit.center = [x_coordinate[i] * 1e3, y_coordinate[i] * 1e3]
+    # print(save_path + r"temp_{}_{}.gds".format(name, id))
+    c.write_gds(save_path + r"temp_{}_{}.gds".format(name, id)) # 不支持奇特的字符，例如×乘号，使用字母和常规符号
+
 
 
 if __name__ == '__main__':
@@ -94,7 +100,7 @@ if __name__ == '__main__':
     # name = "lens3"
     unit_radius = [80e-6, 96e-6, 103e-6, 109e-6, 113e-6, 117e-6, 128e-6, 137e-6]
     unit_period = 500e-6
-    save_path = r"E:/Research/WavePropagation/metalens_simulation/Zoom_6×/20240930_actual_cylinder_1064/"
+    save_path = r"E:/Research/WavePropagation/metalens_simulation/Zoom_6x/20240930_actual_cylinder_1064/"
     x_coordinate, y_coordinate, radius_list = binary2_cylinder_square(save_path, name, lens_radius, unit_period,
                                                                       unit_radius, mult_coef_a)
     if not os.path.exists(save_path + r"temp_GDS/"):
@@ -103,7 +109,7 @@ if __name__ == '__main__':
     # c = L.draw()
     # c.write_gds("p1.gds")
     """并行绘制版图"""
-    CPU_core = 24  # 运行的线程数量
+    CPU_core = 8  # 运行的线程数量
     component_max = 50000  # 最大绘制组件数量
     unit_number = len(x_coordinate)
     print(" {} unit structures need to be drawn".format(unit_number))
@@ -111,7 +117,7 @@ if __name__ == '__main__':
         n = np.ceil(unit_number / component_max).astype(int)  # 需要总轮次
     else:
         n = CPU_core
-    print("{} tasks are required".format(n))
+    print("{} tasks are required".format(n))  # 分区
     x = np.array_split(x_coordinate, n)
     y = np.array_split(y_coordinate, n)
     r = np.array_split(radius_list, n)
@@ -131,18 +137,27 @@ if __name__ == '__main__':
             p.join()
 
     c = gf.Component()
-    c.name = 'all'
-    # 合并不同核心的计算数据
+    c.name = 'quarter_lens'
+    # 合并不同分区的计算数据
     for i in tqdm(range(n), desc="Merging"):
         s = gf.read.import_gds(save_path + r"temp_GDS/temp_{}_{}.gds".format(name, i))
         c.add_ref(s)
     # 镜像
-    m = c.dup()
-    m.name = "y_mirror"
-    m = c << m
-    m.dmirror(p1=gf.kdb.DPoint(0, 0), p2=gf.kdb.DPoint(0, 1))  # y轴
-    m = c.dup()
-    m.name = "x_mirror"
-    m = c << m
-    m.dmirror(p1=gf.kdb.DPoint(0, 0), p2=gf.kdb.DPoint(1, 0))  # x轴
-    c.write_gds(save_path + "{}.gds".format(name))
+    s_copy = gf.Component()
+    s_copy.add_ref(c)
+    s_copy.name = "quarter_lens_copy"
+    m_y = s_copy.mirror((0, 0), (0, 1))
+    m_y.name = "y_mirror"
+    s_y = gf.Component()
+    s_y.add_ref(s_copy)
+    s_y.add_ref(m_y)
+    s_y.name = "half_lens"
+    m_x = s_y.mirror((0, 0), (1, 0))
+    m_x.name = "x_mirror"
+    c_all = gf.Component()
+    c_all.name = "all"
+    c_all.add_ref(m_y)
+    c_all.add_ref(m_x)
+    c_all.add_ref(s_copy)
+    c_all.write_gds("p_m.gds")
+    c_all.write_gds(save_path + "{}.gds".format(name))

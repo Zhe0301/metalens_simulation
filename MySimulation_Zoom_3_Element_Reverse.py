@@ -6,7 +6,7 @@
 周王哲
 """
 import sys
-
+import h5py
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
 from loguru import logger
@@ -209,8 +209,6 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
     """后截距的y-z截面计算"""
     if interval > 0 and sampling_point > 0:
         logger.info("Calculating the light field in y-z cross section")
-        if gpu_acceleration:
-            e_5 = cp.asarray(e_5)
         dist_array = np.linspace(d_bfl - interval, d_bfl + interval, sampling_point)
         e_yz = np.zeros((len(G.axis), len(dist_array)), dtype=complex)
         for i in tqdm(range(len(dist_array))):
@@ -236,12 +234,16 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
         if show:
             plt.show()
         plt.close()
-
-        np.save(save_path+"e_5_f_{:.1f}.npy".format(efl), e_5)
-        np.save(save_path+"e_6_f_{:.1f}.npy".format(efl), e_6)
-        np.save(save_path+"e_yz_f_{:.1f}.npy".format(efl), e_yz)
+        with h5py.File(save_path + "e_5_f_{:.1f}.h5".format(efl), 'w') as f:
+            dset = f.create_dataset('phase_number', data=e_5, compression='gzip', compression_opts=9)
+        with h5py.File(save_path + 'e_6_f_{:.1f}.h5'.format(efl), 'w') as f:
+            dset = f.create_dataset('phase_number', data=e_6, compression='gzip', compression_opts=9)
+        with h5py.File(save_path + 'e_yz_f_{:.1f}.h5'.format(efl), 'w') as f:
+            dset = f.create_dataset('phase_number', data=e_yz, compression='gzip', compression_opts=9)
         return e_5, e_6, e_yz
     else:
-        np.save(save_path+"e_5_f_{:.1f}.npy".format(efl), e_5)
-        np.save(save_path+"e_6_f_{:.1f}.npy".format(efl), e_6)
+        with h5py.File(save_path + "e_5_f_{:.1f}.h5".format(efl), 'w') as f:
+            dset = f.create_dataset('phase_number', data=e_5, compression='gzip', compression_opts=9)
+        with h5py.File(save_path + 'e_6_f_{:.1f}.h5'.format(efl), 'w') as f:
+            dset = f.create_dataset('phase_number', data=e_6, compression='gzip', compression_opts=9)
         return e_5, e_6

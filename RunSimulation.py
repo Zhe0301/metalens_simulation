@@ -82,7 +82,7 @@ current_date = datetime.now().strftime('%Y%m%d')
 # %M 分钟数（00=59）
 # %S 秒（00-59）
 
-save_path = r'E:/Research/WavePropagation/metalens_simulation/Zoom_6×/{}_{}/'.format(current_date,
+save_path = r'E:/Research/WavePropagation/metalens_simulation/Zoom_6x/{}_{}/'.format(current_date,
                                                                                               name)  # 数据存放目录
 if not os.path.exists(save_path):
     # 如果不存在则创建
