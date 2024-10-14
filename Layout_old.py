@@ -89,15 +89,18 @@ def draw_circle(x_coordinate, y_coordinate, radius_list, name, save_path, id=0):
 
 
 if __name__ == '__main__':
-    # mult_coef_a = [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491] # Lens1
-    # lens_radius = 0.75
-    # name = "lens1"
-    mult_coef_a = [3.157248960338e3, -2.062812665413e3, 1.207061495482e4, -6.173754564586e4]  # Lens2
-    lens_radius = 0.31
-    name = "lens2"
+    mult_coef_a = [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491] # Lens1
+    lens_radius = 0.75
+    name = "lens1_old"
+    # mult_coef_a = [3.157248960338e3, -2.062812665413e3, 1.207061495482e4, -6.173754564586e4]  # Lens2
+    # lens_radius = 0.31
+    # name = "lens2_old"
     # mult_coef_a = [-1.845376080337e3, 6.935299381526e1, -7.928934283067, 1.711027879901] # Lens3
     # lens_radius = 1.2
-    # name = "lens3"
+    # name = "lens3_old"
+
+
+    
     unit_radius = [80e-6, 96e-6, 103e-6, 109e-6, 113e-6, 117e-6, 128e-6, 137e-6]
     unit_period = 500e-6
     save_path = r"E:/Research/WavePropagation/metalens_simulation/Zoom_6x/20240930_actual_cylinder_1064/"
