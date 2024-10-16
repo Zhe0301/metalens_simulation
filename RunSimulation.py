@@ -6,7 +6,7 @@ By 周王哲
 import os
 import time
 from datetime import datetime
-
+import h5py
 from loguru import logger
 import numpy as np
 import cupy as cp
@@ -107,18 +107,20 @@ for i in range(len(efl)):
     L1 = Lens(G)
     L1.binary2_d(0.72, 1, 1, [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491], unit_phase, unit_t, boundaries,
                  gpu_acceleration=gpu_acceleration)
-
-    np.save(save_path + "Lens1.npz", L1.phase)
+    with h5py.File(save_path + "Lens1.h5", 'w') as f:
+        dset = f.create_dataset('Lens1_phase', data=L1.phase, compression='gzip', compression_opts=9)
     # L1.plot_phase(save_path + 'L1_d_')
     L2 = Lens(G)
     L2.binary2_d(0.3, 1, 1, [3.157248960338e3,-2.062812665413e3, 1.207061495482e4,-6.173754564586e4], unit_phase, unit_t, boundaries,
                  gpu_acceleration=gpu_acceleration)
-    np.save(save_path + "Lens2.npz", L2.phase)
+    with h5py.File(save_path + "Lens2.h5", 'w') as f:
+        dset = f.create_dataset('Lens2_phase', data=L2.phase, compression='gzip', compression_opts=9)
     # L2.plot_phase(save_path + 'L2_d_')
     L3 = Lens(G)
     L3.binary2_d(1.2, 1, 1, [-1.845376080337e3, 6.935299381526e1, -7.928934283067,	1.711027879901], unit_phase, unit_t, boundaries,
                  gpu_acceleration=gpu_acceleration)
-    np.save(save_path + "Lens3.npz", L3.phase)
+    with h5py.File(save_path + "Lens3.h5", 'w') as f:
+        dset = f.create_dataset('Lens3_phase', data=L3.phase, compression='gzip', compression_opts=9)
     t1 = time.time()
     logger.success("lens initialization complete, Elapsed time: {:.2f}".format(t1-t0))
     # L3.plot_phase(save_path + 'L3_d_')
