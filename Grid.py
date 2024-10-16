@@ -25,5 +25,6 @@ class Grid:
         self.d2_x, self.d2_y = np.meshgrid(self.axis, self.axis)  # 离散后的坐标矩阵
         self.d2_square = self.d2_x ** 2 + self.d2_y ** 2  # 离散后的坐标平方和
         self.d2_r = np.sqrt(self.d2_square)  # 离散后的极坐标半径
+        self.d2_theta = np.arctan2(self.d2_y, self.d2_x) # 离散后的极坐标极角，arctan2可自动判断象限，值域为-pi~pi；arctan值域为-pi/2~pi/2
 
         self.d2_fft_x, self.d2_fft_y = np.meshgrid(self.axis_fft, self.axis_fft) # 离散后的频谱坐标矩阵

@@ -4,6 +4,8 @@ By 周王哲
 2024.7.11
 """
 import time
+from copyreg import pickle
+
 from loguru import logger
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,25 +24,49 @@ matplotlib.use('qt5agg')
 
 
 class Lens:
-    def __init__(self, Grid,):
+    def __init__(self, Grid):
         """
-        :param: Grid网格类，
-        :param: t光强透过率
+        :param: Grid: 网格类
         """
         self.Grid = Grid
         self.complex_amplitude_t = None
         self.phase = None
         self.mask = None
         self.amplitude = None
+    def moire_quadratic(self, r_max, a, phi,round_off=True,t=1):
+        """
+        二次相位摩尔透镜模拟
+        参考文献：Adjustable refractive power from diffractive moire elements (2008)
+        :param r_max: 最大半径,单位 mm;
+        :param a: 相位系数，影响变焦范围.a的正负可区分第一面和第二面
+        :param phi: 旋转角度，弧度制，换算值0-2pi
+        :param round_off: 是否使用相位四舍五入近似
+        :param t: 能量透过率
+        :return:
+        """
+        mask_index = self.Grid.d2_r <= r_max
+        self.mask = np.zeros_like(self.Grid.d2_r)
+        self.mask[mask_index] = 1
+        self.phase = np.zeros_like(self.Grid.d2_r)
+        differential_angle = self.Grid.d2_theta - phi
+
+        if round_off:
+            self.phase = np.round(a * self.Grid.d2_square) * differential_angle
+        else:
+            differential_angle[differential_angle<= -np.pi] += 2*np.pi # 周期性处理
+            self.phase = a * self.Grid.d2_square * differential_angle
+        self.phase = self.phase * self.mask
+        self.amplitude = np.ones_like(self.Grid.d2_r) * self.mask
+        self.complex_amplitude_t = self.amplitude * np.exp(1j * self.phase) * t * self.mask
 
     def binary2(self, r_max, m, r_0, a, t=1):
         """
-        二元面2模拟:使用镜像坐标的偶次多项式描述相位面
-        :param: r_max最大半径,单位 mm;
-        :param: m衍射阶数;
-        :param: r_0归一化半径,单位 mm;
-        :param: a多项式系数数组;
-        :param: t 能量透过率
+        二元面2模拟: 使用径向坐标的偶次多项式描述相位面
+        :param: r_max：最大半径,单位 mm;
+        :param: m: 衍射阶数;
+        :param: r_0: 归一化半径,单位 mm;
+        :param: a: 多项式系数数组;
+        :param: t: 能量透过率
         """
         mask_index = self.Grid.d2_r <= r_max
         self.mask = np.zeros_like(self.Grid.d2_r)

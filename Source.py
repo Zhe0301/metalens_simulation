@@ -14,7 +14,7 @@ class Source:
         self.d2_y = d2_y
 
     def plane_wave(self, alpha, beta):
-        # alpha,beta是平面波的方向余弦
+        # alpha,beta是平面波的方向余弦，弧度制
         self.k_prop = 2 * np.pi / self.wavelength_vacuum
         if alpha == np.pi/2 and beta == np.pi/2:
             self.phase = np.zeros_like(self.d2_x)
