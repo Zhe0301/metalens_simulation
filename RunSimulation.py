@@ -65,9 +65,11 @@ discrete = 8
 # boundaries = np.array([[points[i], points[i + 1]] for i in range(discrete)])
 # boundaries = boundaries * 2 * np.pi
 # 实际离散
-unit_phase = [0, 0.8051036, 1.554511, 2.436956, 3.189646, 3.877856, 4.779246, 5.468306]
+# unit_phase = [0, 0.8051036, 1.554511, 2.436956, 3.189646, 3.877856, 4.779246, 5.468306]
+unit_phase = [0, 0.771214, 1.611515, 2.329676, 3.129286, 3.941896, 4.700876, 5.486196]
 
-unit_t = [0.948735, 0.886475, 0.810874, 0.760933, 0.743341, 0.728135, 0.800406, 0.823376]
+# unit_t = [0.948735, 0.886475, 0.810874, 0.760933, 0.743341, 0.728135, 0.800406, 0.823376]
+unit_t = [0.957917, 0.885148, 0.799661, 0.756625, 0.738394, 0.713619, 0.756191, 0.81503]
 points = np.linspace(0, 1, discrete + 1)
 boundaries = np.array([[points[i], points[i + 1]] for i in range(discrete)])
 boundaries = boundaries * 2 * np.pi
@@ -100,7 +102,7 @@ for i in range(len(efl)):
     logger.info("boundaries = {}".format(boundaries))
     t0 = time.time()
     # 光源
-    s = Source(G.d2_x, G.d2_y, wavelength_vacuum, 1)
+    s = Source(G, wavelength_vacuum, 1)
     s.plane_wave(np.pi / 2, np.pi / 2)
 
     # 镜片

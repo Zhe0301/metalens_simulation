@@ -33,7 +33,8 @@ class Lens:
         self.phase = None
         self.mask = None
         self.amplitude = None
-    def moire_quadratic(self, r_max, a, phi,round_off=True,t=1):
+
+    def moire_quadratic(self, r_max, a, phi, round_off=True, t=1):
         """
         二次相位摩尔透镜模拟
         参考文献：Adjustable refractive power from diffractive moire elements (2008)
@@ -51,9 +52,9 @@ class Lens:
         differential_angle = self.Grid.d2_theta - phi
 
         if round_off:
-            self.phase = np.round(a * self.Grid.d2_square) * differential_angle
+            self.phase = np.ceil(a * self.Grid.d2_square) * differential_angle  # 向上取整
         else:
-            differential_angle[differential_angle<= -np.pi] += 2*np.pi # 周期性处理
+            differential_angle[differential_angle <= -np.pi] += 2 * np.pi  # 周期性处理
             self.phase = a * self.Grid.d2_square * differential_angle
         self.phase = self.phase * self.mask
         self.amplitude = np.ones_like(self.Grid.d2_r) * self.mask
@@ -79,30 +80,30 @@ class Lens:
         self.amplitude = np.ones_like(self.Grid.d2_r) * self.mask
         self.complex_amplitude_t = self.amplitude * np.exp(1j * self.phase) * t * self.mask  # 复振幅透过率
 
-    def binary2_d(self, r_max, m, r_0, a, unit_phase=None, unit_t=None,  boundaries=None, gpu_acceleration=True):
+    def binary2_d(self, r_max, m, r_0, a, unit_phase=None, unit_t=None, boundaries=None, gpu_acceleration=True):
         """
         相位离散型的二元面2，
 
-        :param r_max:  镜片最大半径;
-        :param m: 衍射阶数,d相位的均分份数;
-        :param r_0: 归一化半径，单位mm
-        :param a: 多项式系数数组;
-        :param unit_phase: 数组，离散单元的相位值
-        :param unit_t: 数组，离散单元的能量透过率
-        :param gpu_acceleration: 是否使用GPU加速
+        :param: r_max:  镜片最大半径;
+        :param: m: 衍射阶数,d相位的均分份数;
+        :param: r_0: 归一化半径，单位mm
+        :param: a: 多项式系数数组;
+        :param: unit_phase: N维数组，离散单元的相位值
+        :param: unit_t: N维数组，离散单元的能量透过率
+        :param: boundaries: 2*N矩阵，每个离散相位值代替的相位范围
+        :param: gpu_acceleration: 是否使用GPU加速
 
 
         """
         t0 = time.time()
         gpu_acceleration = True
 
-
         # 相位离散型二元面2，最大半径r_max,衍射阶数m,归一化半径r_0,单位 mm,多项式系数数组a，d相位的均分份数
         if unit_phase is None:
             unit_phase = np.array([0, 1 / 4, 2 / 4, 3 / 4, 1, 5 / 4, 6 / 4, 7 / 4]) * np.pi + np.pi / 8
         if unit_t is None:
             unit_t = np.array([1, 1, 1, 1, 1, 1, 1, 1])
-        if  boundaries is None:
+        if boundaries is None:
             partition_range = np.array([[0, 1 / 8], [1 / 8, 2 / 8], [2 / 8, 3 / 8], [3 / 8, 4 / 8], [4 / 8, 5 / 8],
                                         [5 / 8, 6 / 8], [6 / 8, 7 / 8], [7 / 8, 1]]) * 2 * np.pi
         xp = cp if gpu_acceleration else np
@@ -133,16 +134,16 @@ class Lens:
             self.phase = self.phase * self.mask
 
         self.complex_amplitude_t = self.amplitude * np.exp(1j * self.phase) * self.mask  # 复振幅透过率
-        if  gpu_acceleration:
+        if gpu_acceleration:
             self.complex_amplitude_t = cp.asnumpy(self.complex_amplitude_t)
             self.phase = cp.asnumpy(self.phase)
             self.amplitude = cp.asnumpy(self.amplitude)
             self.mask = cp.asnumpy(self.mask)
             self.Grid.d2_r = cp.asnumpy(self.Grid.d2_r)
         t1 = time.time()
-        logger.success("binary2_d initialization complete: {:.2f}s".format(t1-t0))
+        logger.success("binary2_d initialization complete: {:.2f}s".format(t1 - t0))
 
-    def ideal_lens(self, r_max, focal_length, wavelength_vacuum,t=1):
+    def ideal_lens(self, r_max, focal_length, wavelength_vacuum, t=1):
         """
         理想透镜
         :param r_max: 镜片最大半径;
@@ -160,7 +161,7 @@ class Lens:
         self.complex_amplitude_t = self.amplitude * np.exp(- 1j * self.phase) * t * self.mask
         # self.complex_amplitude_t = self.amplitude * np.exp(-1j * self.phase) * t
 
-    def hole(self, r_max,t=1):
+    def hole(self, r_max, t=1):
         """
         圆孔
         :param r_max: 孔的半径;
@@ -172,7 +173,7 @@ class Lens:
         self.phase = np.zeros_like(self.Grid.d2_r) * self.mask
         self.complex_amplitude_t = self.amplitude * np.exp(1j * self.phase) * t * self.mask
 
-    def square_hole(self, lenth_x, lenth_y,t=1):
+    def square_hole(self, lenth_x, lenth_y, t=1):
         """
         方孔
         :param lenth_x: 孔的x长度;
@@ -188,7 +189,7 @@ class Lens:
 
     def plot_phase(self, save_path=r'/'):
         phase_2pi = np.mod(self.phase, 2 * np.pi)
-        plt.figure(figsize=(16, 9))
+        plt.figure(figsize=(16, 7))
         plt.subplot(1, 2, 1)
         plt.pcolormesh(self.Grid.d2_x, self.Grid.d2_y, self.phase, cmap="jet")
         plt.title('Phase Distribution')
@@ -198,17 +199,18 @@ class Lens:
         cb.set_label(r'Phase(rad)')  # 给colorbar添加标题
         plt.subplot(1, 2, 2)
         plt.pcolormesh(self.Grid.d2_x, self.Grid.d2_y, phase_2pi, cmap="jet")
-        plt.title(r'Phase Distribution $0 ~ 2\pi$')
+        plt.title(r'Phase Distribution $0 \sim 2\pi$')
         plt.xlabel(r'$x$(mm)')
         plt.ylabel(r'$y$(mm)')
         cb = plt.colorbar()
         cb.set_label(r'Phase(rad)')  # 给colorbar添加标题
+        plt.tight_layout()
         if save_path is not None:
             plt.savefig(save_path + 'Phase.png')
         plt.show()
         plt.close()
 
-    def plot_intensity(self, save_path=None):
+    def plot_intensity(self, save_path=r'/'):
         plt.figure(figsize=(9, 7))
         plt.pcolormesh(self.Grid.d2_x, self.Grid.d2_y, np.abs(self.complex_amplitude_t) ** 2, cmap="jet")
         plt.title('Intesity')

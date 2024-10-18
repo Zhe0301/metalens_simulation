@@ -28,7 +28,7 @@ import cupy as cp
 import time
 from Tools import *
 
-def moire_zoom_system(S, H, L1, L2, G,d_l1,d_l2, d_h1,d_12, d_bfl, refractive_index,
+def moire_zoom_system(S, H, L1, L2, G, d_h1, d_l1, d_12, d_l2, d_bfl, refractive_index,
                               name,save_path, magnification=100, sampling_point=200, interval=1, method='AS', show=False,
                               gpu_acceleration=False):
     """
@@ -36,7 +36,7 @@ def moire_zoom_system(S, H, L1, L2, G,d_l1,d_l2, d_h1,d_12, d_bfl, refractive_in
     H 孔对象
     L1 L2 两片镜片对象
     G 网络对象
-    d_l1,d_l2, d_h1,d_12, d_bfl 镜片1厚度 镜片2厚度 孔和镜片1的间距 镜片1和2间距 后截距
+    d_h1, d_l1, d_12, d_l2, d_bfl 孔和镜片1的间距 镜片1厚度 镜片2厚度 镜片1和2间距 后截距
     name 用于文件命名
     refractive_index 镜片折射率
     save_path 文件储存目录
@@ -44,20 +44,9 @@ def moire_zoom_system(S, H, L1, L2, G,d_l1,d_l2, d_h1,d_12, d_bfl, refractive_in
     sampling_point x-z截面计算的采样点数，为0时不计算
     interval x-z截面采样时焦点前后的距离，为0时不计算，单位mm
     """
-
+    if gpu_acceleration:
+        logger.info("Using GPU to accelerate computing")
     t0 = time.time()
-    if gpu_acceleration:  # 使用GPU加速先进行数据转换
-        G.d2_fft_x = cp.asarray(G.d2_fft_x)
-        G.d2_fft_y = cp.asarray(G.d2_fft_y)
-        G.axis = cp.asarray(G.axis)
-        L1.complex_amplitude_t = cp.asarray(L1.complex_amplitude_t)
-        L1.mask = cp.asarray(L1.mask)
-        L2.complex_amplitude_t = cp.asarray(L2.complex_amplitude_t)
-        S.complex_amplitude = cp.asarray(S.complex_amplitude)
-        xp = cp
-    else:
-        xp = np
-
     p_h1 = PropOperator(G, S.wavelength_vacuum, d_h1, refractive_index=1, method=method,
                        gpu_acceleration=gpu_acceleration)  # d_h1传播，孔到第一篇透镜
     p_l1 = PropOperator(G, S.wavelength_vacuum, d_l1, refractive_index=refractive_index, method=method,
@@ -106,7 +95,7 @@ def moire_zoom_system(S, H, L1, L2, G,d_l1,d_l2, d_h1,d_12, d_bfl, refractive_in
     cb = plt.colorbar()
     cb.set_label('Intensity')  # 给colorbar添加标题
     plt.tight_layout()
-    plt.savefig(save_path + 'MTF_f_{:.1f}.png'.format(name))
+    plt.savefig(save_path + 'MTF_{}.png'.format(name))
     if show:
         plt.show()
     plt.close()
@@ -149,7 +138,7 @@ def moire_zoom_system(S, H, L1, L2, G,d_l1,d_l2, d_h1,d_12, d_bfl, refractive_in
     plt.ylabel('Intensity')
     plt.grid()
     plt.tight_layout()
-    plt.savefig(save_path + 'image_f_{:.1f}.png'.format(name))
+    plt.savefig(save_path + 'image_{}.png'.format(name))
 
 
     # 放大像面并插值绘图
@@ -190,7 +179,7 @@ def moire_zoom_system(S, H, L1, L2, G,d_l1,d_l2, d_h1,d_12, d_bfl, refractive_in
         plt.ylabel('Intensity')
         plt.grid()
         plt.tight_layout()
-        plt.savefig(save_path + 'image_interp_f_{:.1f}.png'.format(name))
+        plt.savefig(save_path + 'image_interp_{}.png'.format(name))
 
     # 圈入能量和半高宽插值绘图
     r_interp = np.linspace(G.axis[mid_index_0:].min(), G.axis[mid_index_0:].max(), G.axis.shape[0])  # 对数据进行一倍插值
@@ -209,7 +198,7 @@ def moire_zoom_system(S, H, L1, L2, G,d_l1,d_l2, d_h1,d_12, d_bfl, refractive_in
     plt.ylabel('Enclosed Energy Ratio')
     plt.xlim(0, 10)
     plt.grid()
-    plt.savefig(save_path + 'enclosed_energy_ratio_f_{:.1f}.png'.format(name))
+    plt.savefig(save_path + 'enclosed_energy_ratio_f_{}.png'.format(name))
     if show:
         plt.show()
     plt.close()
@@ -240,7 +229,7 @@ def moire_zoom_system(S, H, L1, L2, G,d_l1,d_l2, d_h1,d_12, d_bfl, refractive_in
         plt.ylabel(r'$x$(mm)')
         cb = plt.colorbar()
         cb.set_label('ln(Intensity)')  # 给colorbar添加标题
-        plt.savefig(save_path + 'x-z_cross_section_{:.1f}.png'.format(name))
+        plt.savefig(save_path + 'x-z_cross_section_{}.png'.format(name))
         if show:
             plt.show()
         plt.close()

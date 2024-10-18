@@ -68,9 +68,9 @@ def binary2_cylinder_square(save_path, name, lens_radius, unit_period, unit_radi
 
 def draw_circle(x_coordinate, y_coordinate, radius_list, name, save_path, id=0):
     """
-    生成GDS文件
-    :param x_coordinate: 一维数组，x坐标，单位mm
-    :param y_coordinate: 一维数组，y坐标，单位mm
+    绘制圆形，生成GDS文件
+    :param x_coordinate: 一维数组，中心x坐标，单位mm
+    :param y_coordinate: 一维数组，中心y坐标，单位mm
     :param radius_list: 一维数组，圆柱半径，单位mm
     :param name: 文件及器件名称
     :param save_path: 储存路径
@@ -80,16 +80,39 @@ def draw_circle(x_coordinate, y_coordinate, radius_list, name, save_path, id=0):
     c = gf.Component()
     c.name = str(id)
     for i in tqdm(range(len(x_coordinate)), desc="Task_{}".format(id)):
-        circle = gf.components.circle(radius=radius_list[i] * 1e3,layer=(1, 0))
+        circle = gf.components.circle(radius=radius_list[i] * 1e3, layer=(1, 0))
         unit = c << circle
         unit.center = [x_coordinate[i] * 1e3, y_coordinate[i] * 1e3]
     # print(save_path + r"temp_{}_{}.gds".format(name, id))
-    c.write_gds(save_path + r"temp_{}_{}.gds".format(name, id)) # 不支持奇特的字符，例如×乘号，使用字母和常规符号
+    c.write_gds(save_path + r"temp_{}_{}.gds".format(name, id))  # 不支持奇特的字符，例如×乘号，使用字母和常规符号
 
+
+def draw_polygon(x_coordinate, y_coordinate, radius_list, n, name, save_path, id=0):
+    """
+    绘制多边形，生成GDS文件
+    :param: x_coordinate: 一维数组，中心x坐标，单位mm
+    :param: y_coordinate: 一维数组，中心y坐标，单位mm
+    :param: radius_list: 一维数组，多边形外接圆半径，单位mm
+    :param: name: 文件及器件名称
+    :param: save_path: 储存路径
+    :param: id: 多线程时线程号
+    :return: 无
+    """
+    c = gf.Component()
+    for i in tqdm(range(len(x_coordinate)), desc="Task_{}".format(id)):
+        angle = 2 * np.pi / n / 2  # 多边形顶点对应的角度
+        vtx = [] # 存放多边形顶点
+        for j in range(n):
+            x = radius_list[i] * np.sin(angle) + x_coordinate[i]
+            y = radius_list[i] * np.cos(angle) + y_coordinate[i]
+            point = (x, y)
+            angle = angle + 2*np.pi/n
+            vtx.append(point)
+        c.add_polygon(vtx, layer=(1, 0))
 
 
 if __name__ == '__main__':
-    mult_coef_a = [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491] # Lens1
+    mult_coef_a = [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491]  # Lens1
     lens_radius = 0.75
     name = "lens1_old"
     # mult_coef_a = [3.157248960338e3, -2.062812665413e3, 1.207061495482e4, -6.173754564586e4]  # Lens2
@@ -99,8 +122,6 @@ if __name__ == '__main__':
     # lens_radius = 1.2
     # name = "lens3_old"
 
-
-    
     unit_radius = [80e-6, 96e-6, 103e-6, 109e-6, 113e-6, 117e-6, 128e-6, 137e-6]
     unit_period = 500e-6
     save_path = r"E:/Research/WavePropagation/metalens_simulation/Zoom_6x/20240930_actual_cylinder_1064/"
