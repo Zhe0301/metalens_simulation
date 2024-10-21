@@ -235,15 +235,15 @@ def three_element_zoom_system(S, L1, L2, L3, G, d_lens, d_12, d_23, d_bfl, efl, 
             plt.show()
         plt.close()
         with h5py.File(save_path + "e_5_f_{:.1f}.h5".format(efl), 'w') as f:
-            dset = f.create_dataset('complex_amplitude', data=e_5, compression='gzip', compression_opts=9)
+            f.create_dataset('complex_amplitude', data=e_5, compression='gzip', compression_opts=9)
         with h5py.File(save_path + 'e_6_f_{:.1f}.h5'.format(efl), 'w') as f:
-            dset = f.create_dataset('complex_amplitude', data=e_6, compression='gzip', compression_opts=9)
+            f.create_dataset('complex_amplitude', data=e_6, compression='gzip', compression_opts=9)
         with h5py.File(save_path + 'e_yz_f_{:.1f}.h5'.format(efl), 'w') as f:
-            dset = f.create_dataset('complex_amplitude', data=e_yz, compression='gzip', compression_opts=9)
+            f.create_dataset('complex_amplitude', data=e_yz, compression='gzip', compression_opts=9)
         return e_5, e_6, e_yz
     else:
         with h5py.File(save_path + "e_5_f_{:.1f}.h5".format(efl), 'w') as f:
-            dset = f.create_dataset('complex_amplitude', data=e_5, compression='gzip', compression_opts=9)
+            f.create_dataset('complex_amplitude', data=e_5, compression='gzip', compression_opts=9)
         with h5py.File(save_path + 'e_6_f_{:.1f}.h5'.format(efl), 'w') as f:
-            dset = f.create_dataset('complex_amplitude', data=e_6, compression='gzip', compression_opts=9)
+            f.create_dataset('complex_amplitude', data=e_6, compression='gzip', compression_opts=9)
         return e_5, e_6

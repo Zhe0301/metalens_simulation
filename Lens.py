@@ -190,7 +190,7 @@ class Lens:
         self.phase = np.zeros_like(self.Grid.d2_r) * self.mask
         self.complex_amplitude_t = self.amplitude * np.exp(1j * self.phase) * t * self.mask
 
-    def plot_phase(self, save_path=r'/'):
+    def plot_phase(self, save_path=r'/',show=False):
         phase_2pi = np.mod(self.phase, 2 * np.pi)
         plt.figure(figsize=(16, 7))
         plt.subplot(1, 2, 1)
@@ -210,7 +210,8 @@ class Lens:
         plt.tight_layout()
         if save_path is not None:
             plt.savefig(save_path + 'Phase.png')
-        plt.show()
+        if show:
+            plt.show()
         plt.close()
 
     def plot_intensity(self, save_path=r'/'):

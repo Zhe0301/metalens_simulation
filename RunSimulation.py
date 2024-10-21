@@ -92,44 +92,45 @@ if not os.path.exists(save_path):
     print(f"文件夹 '{save_path}' 已创建。")
 else:
     print(f"文件夹 '{save_path}' 已存在。")
-# 建立log
+
+logger.add(save_path + '{}_{}.log'.format(current_date, name))
+logger.info("simulation mesh:{}×{}  simulation lenth:{:.5f} mm".format(num_points, num_points, num_points * period))
+logger.info("unit phase = {}".format(unit_phase))
+logger.info("unit transmittance = {}".format(unit_t))
+logger.info("boundaries = {}".format(boundaries))
+t0 = time.time()
+# 光源
+s = Source(G, wavelength_vacuum, 1)
+s.plane_wave(np.pi / 2, np.pi / 2)
+# 坐标保存
+with h5py.File(save_path + "Grid_x.h5", 'w') as f:
+    f.create_dataset('Grid_x', data=G.d2_x, compression='gzip', compression_opts=9)
+with h5py.File(save_path + "Grid_y.h5", 'w') as f:
+    f.create_dataset('Grid_y', data=G.d2_y, compression='gzip', compression_opts=9)
+# 镜片
+L1 = Lens(G)
+L1.binary2_d(0.72, 1, 1, [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491], unit_phase, unit_t, boundaries,
+             gpu_acceleration=gpu_acceleration)
+with h5py.File(save_path + "Lens1.h5", 'w') as f:
+    f.create_dataset('Lens1_phase', data=L1.phase, compression='gzip', compression_opts=9)
+L1.plot_phase(save_path + 'L1_d_')
+L2 = Lens(G)
+L2.binary2_d(0.3, 1, 1, [3.157248960338e3,-2.062812665413e3, 1.207061495482e4,-6.173754564586e4], unit_phase, unit_t, boundaries,
+             gpu_acceleration=gpu_acceleration)
+with h5py.File(save_path + "Lens2.h5", 'w') as f:
+    f.create_dataset('Lens2_phase', data=L2.phase, compression='gzip', compression_opts=9)
+L2.plot_phase(save_path + 'L2_d_')
+L3 = Lens(G)
+L3.binary2_d(1.2, 1, 1, [-1.845376080337e3, 6.935299381526e1, -7.928934283067,	1.711027879901], unit_phase, unit_t, boundaries,
+             gpu_acceleration=gpu_acceleration)
+with h5py.File(save_path + "Lens3.h5", 'w') as f:
+    f.create_dataset('Lens3_phase', data=L3.phase, compression='gzip', compression_opts=9)
+t1 = time.time()
+logger.success("lens initialization complete, Elapsed time: {:.2f}".format(t1-t0))
+L3.plot_phase(save_path + 'L3_d_')
+d_lens = 0.75
 for i in range(len(efl)):
-    if i < 4:
-        continue
-    logger.add(save_path + 'f_{:.1f}.log'.format(efl[i]))
     logger.info("EFFL = {:.1f} mm".format(efl[i]))
-    logger.info("simulation mesh:{}×{}  simulation lenth:{:.5f} mm".format(num_points, num_points, num_points * period))
-    logger.info("unit phase = {}".format(unit_phase))
-    logger.info("unit transmittance = {}".format(unit_t))
-    logger.info("boundaries = {}".format(boundaries))
-    t0 = time.time()
-    # 光源
-    s = Source(G, wavelength_vacuum, 1)
-    s.plane_wave(np.pi / 2, np.pi / 2)
-
-    # 镜片
-    L1 = Lens(G)
-    L1.binary2_d(0.72, 1, 1, [-5.848595615954e2, 3.20546768416e1, -1.422681034594e1, 2.984845643491], unit_phase, unit_t, boundaries,
-                 gpu_acceleration=gpu_acceleration)
-    with h5py.File(save_path + "Lens1.h5", 'w') as f:
-        dset = f.create_dataset('Lens1_phase', data=L1.phase, compression='gzip', compression_opts=9)
-    # L1.plot_phase(save_path + 'L1_d_')
-    L2 = Lens(G)
-    L2.binary2_d(0.3, 1, 1, [3.157248960338e3,-2.062812665413e3, 1.207061495482e4,-6.173754564586e4], unit_phase, unit_t, boundaries,
-                 gpu_acceleration=gpu_acceleration)
-    with h5py.File(save_path + "Lens2.h5", 'w') as f:
-        dset = f.create_dataset('Lens2_phase', data=L2.phase, compression='gzip', compression_opts=9)
-    # L2.plot_phase(save_path + 'L2_d_')
-    L3 = Lens(G)
-    L3.binary2_d(1.2, 1, 1, [-1.845376080337e3, 6.935299381526e1, -7.928934283067,	1.711027879901], unit_phase, unit_t, boundaries,
-                 gpu_acceleration=gpu_acceleration)
-    with h5py.File(save_path + "Lens3.h5", 'w') as f:
-        dset = f.create_dataset('Lens3_phase', data=L3.phase, compression='gzip', compression_opts=9)
-    t1 = time.time()
-    logger.success("lens initialization complete, Elapsed time: {:.2f}".format(t1-t0))
-    # L3.plot_phase(save_path + 'L3_d_')
-    d_lens = 0.75
-
     # method = 'FFT-DI'
     # method = 'AS'
     method = "BL-AS"
