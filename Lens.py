@@ -34,15 +34,16 @@ class Lens:
         self.mask = None
         self.amplitude = None
 
-    def moire_quadratic(self, r_max, a, phi, round_off=True, t=1):
+    def moire_quadratic(self, r_max, a, phi, round_off=True, f_offset_wavelength=0, t=1):
         """
         二次相位摩尔透镜模拟
         参考文献：Adjustable refractive power from diffractive moire elements (2008)
-        :param r_max: 最大半径,单位 mm;
-        :param a: 相位系数，影响变焦范围.a的正负可区分第一面和第二面
-        :param phi: 旋转角度，弧度制，换算值0-2pi
-        :param round_off: 是否使用相位四舍五入近似
-        :param t: 能量透过率
+        :param: r_max: 最大半径,单位 mm;
+        :param: a: 相位系数，影响变焦范围.a的正负可区分第一面和第二面
+        :param: phi: 旋转角度，弧度制，换算值0-2pi
+        :param: round_off: 是否使用相位四舍五入近似
+        :param: f_offset_wavelength: 额外的焦距补偿项，是补偿焦距和波长的乘积。补偿焦距是旋转角度为零时的焦距。为零时无补偿
+        :param: t: 能量透过率
         :return:
         """
         mask_index = self.Grid.d2_r <= r_max
@@ -56,6 +57,8 @@ class Lens:
         else:
             differential_angle[differential_angle <= -np.pi] += 2 * np.pi  # 周期性处理
             self.phase = a * self.Grid.d2_square * differential_angle
+        if f_offset_wavelength != 0:
+            self.phase = self.phase + self.Grid.d2_square * np.pi/2/f_offset_wavelength
         self.phase = self.phase * self.mask
         self.amplitude = np.ones_like(self.Grid.d2_r) * self.mask
         self.complex_amplitude_t = self.amplitude * np.exp(1j * self.phase) * t * self.mask
@@ -83,7 +86,6 @@ class Lens:
     def binary2_d(self, r_max, m, r_0, a, unit_phase=None, unit_t=None, boundaries=None, gpu_acceleration=True):
         """
         相位离散型的二元面2，
-
         :param: r_max:  镜片最大半径;
         :param: m: 衍射阶数,d相位的均分份数;
         :param: r_0: 归一化半径，单位mm
@@ -149,6 +151,7 @@ class Lens:
         :param r_max: 镜片最大半径;
         :param focal_length: 焦距;
         :param wavelength_vacuum: 真空中波长
+        :param t: 能量透过率
         """
         mask_index = self.Grid.d2_r <= r_max
         self.mask = np.zeros_like(self.Grid.d2_r)

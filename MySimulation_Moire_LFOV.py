@@ -63,7 +63,7 @@ def moire_zoom_system(S, H, L1, L2, G, d_h1, d_l1, d_12, d_l2, d_bfl, refractive
     logger.info("Calculating light propagation. 1/5 ")
     e_1 = p_h1.prop(S.complex_amplitude * H.complex_amplitude_t) # 孔和镜片1间的传播
     logger.info("Calculating light propagation. 2/5 ")
-    e_2 = p_l1.prop(e_1)
+    e_2 = p_l1.prop(e_1) # 镜片1厚度传播
     del e_1
     logger.info("Calculating light propagation. 3/5 ")
     e_3 = p_12.prop(e_2 * L1.complex_amplitude_t)

@@ -99,16 +99,18 @@ def draw_polygon(x_coordinate, y_coordinate, radius_list, n, name, save_path, id
     :return: 无
     """
     c = gf.Component()
+    c.name = str(id)
     for i in tqdm(range(len(x_coordinate)), desc="Task_{}".format(id)):
         angle = 2 * np.pi / n / 2  # 多边形顶点对应的角度
-        vtx = [] # 存放多边形顶点
+        vtx = []  # 存放多边形顶点
         for j in range(n):
-            x = radius_list[i] * np.sin(angle) + x_coordinate[i]
-            y = radius_list[i] * np.cos(angle) + y_coordinate[i]
+            x = (radius_list[i] * np.sin(angle) + x_coordinate[i]) * 1e3
+            y = (radius_list[i] * np.cos(angle) + y_coordinate[i]) * 1e3
             point = (x, y)
-            angle = angle + 2*np.pi/n
+            angle = angle + 2 * np.pi / n
             vtx.append(point)
         c.add_polygon(vtx, layer=(1, 0))
+    c.write_gds(save_path + r"temp_{}_{}.gds".format(name, id))  # 不支持奇特的字符，例如×乘号，使用字母和常规符号
 
 
 if __name__ == '__main__':

@@ -37,16 +37,16 @@ from Tools import *
 # 建立仿真网络
 
 period = 500e-6  # 按单元结构周期仿真mm
-length = 7.5
+length = 10
 # num_points = np.round(length / period)
-num_points = 8000
+num_points = 5000
 # G = Grid(num_points, num_points * period)
 G = Grid(num_points, length)
 # 建立基本结构参数
 efl = [2, 4, 8, 12, 16, 20]  # 有效焦距，单位mm，用于图片命名
 d_h1 = [0.0, 2.09536116343, 6.179152444322, 1.02103448842e1, 1.422430876415e1, 1.822894084294e1]
 d_l1 = 2.5  # 片1 厚度，单位mm
-d_12 = 0  # 12 镜片的距离，单位mm
+d_12 = 5e-3  # 12 镜片的距离，单位mm
 d_l2 = 0.6  # 片2 厚度，单位mm
 d_bfl = [1.555790264959, 3.563493550424, 7.551701054241, 1.154570246076e1, 1.554137492033e1, 1.953695252082e1]
 
@@ -65,6 +65,7 @@ wavelength_vacuum = 532 * 1e-6  # 真空波长，单位mm
 refractive_index = 1.4607063  # SiO2折射率
 # 莫尔透镜系数
 a = (quadratic_coef[0] - quadratic_coef[-1]) / (np.pi / 2)  # 最大旋转交为pi/2
+f_offset_wavelength = np.pi / quadratic_coef[-1]  # 0度旋转时的补偿焦距和波长的乘积
 logger.info("Coefficient a = {:.3f} ".format(a))
 # name = "actual_cylinder_1064"
 name = "ideal_532"
@@ -91,24 +92,26 @@ else:
     print(f"文件夹 '{save_path}' 已存在。")
 # 建立log
 for i in range(len(efl)):
+    if i < 5:
+        continue
     logger.add(save_path + 'f_{:.1f}.log'.format(efl[i]))
     logger.info("EFFL = {:.1f} mm".format(efl[i]))
     logger.info("simulation mesh:{}×{}  simulation lenth:{:.5f} mm".format(num_points, num_points, num_points * period))
     t0 = time.time()
     # 镜片
     L1 = Lens(G)
-    L1.moire_quadratic(3.6, a, 0, round_off=True)
+    L1.moire_quadratic(3.6, a, 0, round_off=True, f_offset_wavelength=f_offset_wavelength)
     with h5py.File(save_path + "Lens1.h5", 'w') as f:
         dset = f.create_dataset('Lens1_phase', data=L1.phase, compression='gzip', compression_opts=9)
     # L1.plot_phase(save_path + 'L1_')
     phi = (quadratic_coef[i] - quadratic_coef[-1]) / a  # 第二片旋转角
     L2 = Lens(G)
-    L2.moire_quadratic(3.6, -a, phi, round_off=True)
+    L2.moire_quadratic(3.6, -a, phi, round_off=True, f_offset_wavelength=f_offset_wavelength)
     with h5py.File(save_path + "Lens2.h5", 'w') as f:
         dset = f.create_dataset('Lens2_phase', data=L2.phase, compression='gzip', compression_opts=9)
     # L2.plot_phase(save_path + 'L2_')
     H = Lens(G)
-    H.hole(aper[i]/2)
+    H.hole(aper[i] / 2)
 
     # phase = np.angle(L1.complex_amplitude_t*L2.complex_amplitude_t)
     # phase_2pi = np.mod(phase, 2 * np.pi)
@@ -133,7 +136,7 @@ for i in range(len(efl)):
     for y_field in fields[i]:
         # 光源
         s = Source(G, wavelength_vacuum, 1)
-        s.plane_wave(np.pi / 2, np.pi / 2 + y_field)
+        s.plane_wave(np.pi / 2 + y_field / 180 * np.pi, np.pi / 2)
         # s.plot_phase()
         t1 = time.time()
         logger.success("lens initialization complete, Elapsed time: {:.2f}".format(t1 - t0))
@@ -142,7 +145,7 @@ for i in range(len(efl)):
         # method = 'AS'
         method = "BL-AS"
         logger.info("Using {} method".format(method))
-        name = "f_{:.1f}_field_{:.2f}".format(efl[i],y_field)
+        name = "f_{:.1f}_field_{:.2f}".format(efl[i], y_field)
         moire_zoom_system(s, H, L1, L2, G, d_h1[i], d_l1, d_12, d_l2, d_bfl[i], refractive_index, name,
-                          save_path, magnification=200, sampling_point=0, interval=1, method=method, show=False,
+                          save_path, magnification=200, sampling_point=0, interval=1, method=method, show=True,
                           gpu_acceleration=True)

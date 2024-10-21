@@ -94,6 +94,8 @@ else:
     print(f"文件夹 '{save_path}' 已存在。")
 # 建立log
 for i in range(len(efl)):
+    if i < 4:
+        continue
     logger.add(save_path + 'f_{:.1f}.log'.format(efl[i]))
     logger.info("EFFL = {:.1f} mm".format(efl[i]))
     logger.info("simulation mesh:{}×{}  simulation lenth:{:.5f} mm".format(num_points, num_points, num_points * period))
