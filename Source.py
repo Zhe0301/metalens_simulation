@@ -22,7 +22,7 @@ class Source:
         self.k_prop = None
         self.complex_amplitude = None
         self.wavelength_vacuum = wavelength_vacuum
-        self.amplitude = B = np.full(Grid.d2_x.shape, amplitude)
+        self.amplitude = np.full(Grid.d2_x.shape, amplitude)
 
 
     def plane_wave(self, alpha, beta):
